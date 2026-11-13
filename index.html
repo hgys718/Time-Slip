@@ -159,11 +159,13 @@ select { font: inherit; letter-spacing: inherit; text-transform: none; color: va
 .opts button:disabled small { opacity: 1; }
 #itrack { position: relative; height: 44px; background: var(--wash) center / 100% 100% no-repeat; cursor: pointer; touch-action: none; }
 #ithumbs { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: .55; }
-#iwin { position: absolute; top: 0; bottom: 0; border: 1px solid var(--ink); box-shadow: 0 0 0 9999px color-mix(in srgb, var(--bg) 55%, transparent); cursor: grab; }
+#iwin { position: absolute; top: 0; bottom: 0; box-sizing: border-box; min-width: 30px; border: 1px solid var(--ink); box-shadow: 0 0 0 9999px color-mix(in srgb, var(--bg) 55%, transparent); cursor: grab; }
 #itrack { overflow: hidden; }
-#iwin .h { position: absolute; top: -1px; bottom: -1px; width: 12px; background: var(--ink); cursor: ew-resize; touch-action: none; }
-#iwin .h::after { content: ''; position: absolute; left: 5px; top: 30%; bottom: 30%; width: 2px; background: var(--bg); }
-#iwin .h.l { left: -1px; } #iwin .h.r { right: -1px; }
+.irow input { width: 6ch; font: inherit; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--line); padding: 0 0 1px; text-align: right; font-variant-numeric: tabular-nums; }
+.irow input:focus { border-bottom-color: var(--ink); }
+#iwin .h { position: absolute; top: 0; bottom: 0; width: 14px; background: var(--ink); cursor: ew-resize; touch-action: none; }
+#iwin .h::after { content: ''; position: absolute; left: 6px; top: 30%; bottom: 30%; width: 2px; background: var(--bg); }
+#iwin .h.l { left: 0; } #iwin .h.r { right: 0; }
 #iwin.locked { cursor: default; } #iwin.locked .h { display: none; }
 .irow { display: flex; justify-content: space-between; gap: 12px; color: var(--mute); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
 .irow b { color: var(--ink); font-weight: 400; }
@@ -403,9 +405,9 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
   <div class="icol">
   <div class="pvbox"><canvas id="iprev" width="16" height="9" aria-label="Frame at the start of the selection"></canvas></div>
   <div class="field">
-    <div class="row"><span>Section</span><span class="v" id="ihint">drag the white edges to trim · drag the middle to move</span></div>
+    <div class="row"><span>Section</span><span class="v" id="ihint">drag the white edges to trim, or type in and out below</span></div>
     <div id="itrack"><canvas id="ithumbs"></canvas><div id="iwin"><div class="h l"></div><div class="h r"></div></div></div>
-    <div class="irow"><span>In <b id="iin"></b></span><span>Out <b id="iout"></b></span><span>Length <b id="ilen"></b></span><span><b id="ifr"></b> frames · <b id="imem"></b></span></div>
+    <div class="irow"><label>In <input type="text" inputmode="decimal" id="iin" aria-label="Start, in seconds" title="Type a start time in seconds"> s</label><label>Out <input type="text" inputmode="decimal" id="iout" aria-label="End, in seconds" title="Type an end time in seconds"> s</label><span>Length <b id="ilen"></b></span><span><b id="ifr"></b> frames · <b id="imem"></b></span></div>
   </div>
   </div>
   <div class="icol">
@@ -1149,9 +1151,9 @@ function importDialog(I, pre) {
       build();
       const [w, h] = dims(I.W0, I.H0, sel.p), n = nOf(), pl = plan(w, h, n);
       win.style.left = (sel.in / I.dur * 100) + '%'; win.style.width = (sel.len / I.dur * 100) + '%';
-      $('iin').textContent = fmtT(sel.in); $('iout').textContent = fmtT(sel.in + sel.len); $('ilen').textContent = fmtT(sel.len);
+      if (document.activeElement !== $('iin')) $('iin').value = sel.in.toFixed(2); if (document.activeElement !== $('iout')) $('iout').value = (sel.in + sel.len).toFixed(2); $('ilen').textContent = fmtT(sel.len);
       $('ifr').textContent = n; $('imem').textContent = `${w}×${h} · cache ≈ ${fmtGB(n * w * h * JPEG_BPP)}`;
-      $('ihint').textContent = L() < I.dur ? `up to ${fmtT(L())} at this size · drag to move, edges to trim` : 'drag the white edges to trim · drag the middle to move';
+      $('ihint').textContent = L() < I.dur ? `up to ${fmtT(L())} at this size · drag to move, edges to trim` : 'drag the white edges to trim, or type in and out below';
       $('inote').textContent = `Every frame is cached at ${w}×${h}. A time map reaching across ${fmtT(pl.K / fpsOf(sel.st))} or less plays every frame at full size; wider maps step through every 2nd or 3rd frame across their reach.`;
       showIn();
     }
@@ -1169,6 +1171,15 @@ function importDialog(I, pre) {
       for (let i = 0; i < n && open; i++) { tv.currentTime = Math.min(I.dur - .01, (i + .5) * tw / tc.width * I.dur); try { await once(tv, 'seeked', 3000); } catch (e) { break; } x.drawImage(tv, i * tw, 0, tw, th); }
       tv.removeAttribute('src'); tv.load();
     };
+    const typed = which => {                            // type exact in and out times
+      const v = parseFloat($(which).value), minL = 2 / fpsOf(sel.st), out = sel.in + sel.len;
+      if (isFinite(v)) {
+        if (which === 'iin') { const ni = clamp(v, Math.max(0, out - L()), out - minL); sel.in = ni; sel.len = out - ni; }
+        else sel.len = clamp(v - sel.in, minL, Math.min(L(), I.dur - sel.in));
+      }
+      $(which).blur(); refresh();
+    };
+    for (const w of ['iin', 'iout']) { $(w).onchange = () => typed(w); $(w).onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); typed(w); } else if (e.key === 'Escape') { $(w).blur(); refresh(); } }; }
     let dragS = null;
     const secAt = e => { const r = track.getBoundingClientRect(); return clamp((e.clientX - r.left) / r.width, 0, 1) * I.dur; };
     track.onpointerdown = e => {
@@ -1186,7 +1197,7 @@ function importDialog(I, pre) {
     };
     track.onpointerup = track.onpointercancel = () => { dragS = null; };
     function close(val) { open = false; $('import').hidden = true; removeEventListener('keydown', onKey, true); resolve(val); }
-    function onKey(e) { if (e.key === 'Escape') { e.stopImmediatePropagation(); close(null); } else if (e.key === 'Enter') { e.stopImmediatePropagation(); e.preventDefault(); $('igo').click(); } }
+    function onKey(e) { if (e.target === $('iin') || e.target === $('iout')) return; if (e.key === 'Escape') { e.stopImmediatePropagation(); close(null); } else if (e.key === 'Enter') { e.stopImmediatePropagation(); e.preventDefault(); $('igo').click(); } }
     addEventListener('keydown', onKey, true);
     $('icancel').onclick = () => close(null);
     $('igo').onclick = () => { const [W, H] = dims(I.W0, I.H0, sel.p); close({ W, H, fps: fpsOf(sel.st), t0: sel.in, N: nOf() }); };
