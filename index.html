@@ -1480,7 +1480,7 @@ async function encodeVideo(name, ts, { audio = true, before } = {}) {
   const cfg = await pickCodec(clip.W, clip.H, clip.fps), A = cfg && audio ? await pickAudio(clip.abuf) : null;
   await atClipSize(async () => {
     if (cfg) {
-      const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: clip.W, height: clip.H, frameRate: clip.fps },
+      const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: clip.W, height: clip.H, ...(Number.isInteger(clip.fps) ? { frameRate: clip.fps } : {}) },   // the muxer only takes whole frame rates; 29.97 and 23.976 are timed by each frame's timestamp
         ...(A ? { audio: { codec: A.mux, numberOfChannels: A.cfg.numberOfChannels, sampleRate: A.cfg.sampleRate } } : {}), fastStart: 'in-memory' });
       if (A) { status('Encoding sound', 0); await encodeAudio(clip.abuf, A, muxer, ts[0], ts.length); }
       let err = null; const enc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { err = e; } });
