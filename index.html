@@ -137,31 +137,32 @@ select { font: inherit; letter-spacing: inherit; text-transform: none; color: va
 .typerow input { flex: 1; min-width: 0; font: inherit; letter-spacing: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 0; padding: 5px 7px; }
 .typerow input:focus { border-color: var(--ink); outline: none; }
 #import { position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 80%, transparent); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-#import .dlg { width: min(940px, 100%); max-height: calc(100% - 32px); overflow-y: auto; box-sizing: border-box; background: var(--bg); border-top: 1px solid var(--ink);
+#import .dlg { width: min(940px, 100%); max-height: calc(100% - 16px); overflow: hidden; box-sizing: border-box; background: var(--bg); border-top: 1px solid var(--ink);
   display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px 28px; padding: 10px 0 16px; align-items: start; }
 #import .top { grid-column: 1 / -1; }
 #import .icol { display: grid; gap: 14px; min-width: 0; align-content: start; }
 #import .icol:last-child { height: 100%; grid-template-rows: auto auto 1fr auto; }
 #import .icol .iact { align-self: end; }
 .pvbox { display: grid; place-items: center; background: var(--wash); }
-@media (max-width: 760px), (max-height: 560px) and (max-width: 1100px) {
-  #import .dlg { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (max-width: 760px) {
+  #import .dlg { grid-template-columns: minmax(0, 1fr); gap: 12px; overflow-y: auto; }
   #import .icol:last-child { height: auto; grid-template-rows: none; }
   #iprev { max-height: 24vh; }
 }
 #import .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 #import .top .v { color: var(--mute); text-align: right; }
-#iprev { display: block; max-width: 100%; max-height: min(42vh, 380px); width: auto; height: auto; }
+#iprev { display: block; max-width: 100%; max-height: max(80px, min(380px, 100vh - 330px)); width: auto; height: auto; }
 .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
 .opts button { display: grid; gap: 2px; text-align: left; padding: 7px 8px; color: var(--ink); }
 .opts button[aria-pressed="true"] { color: var(--bg); }
 .opts button small { font-size: 9px; opacity: .6; letter-spacing: .04em; }
 .opts button:disabled small { opacity: 1; }
-#itrack { position: relative; height: 40px; background: var(--wash) center / 100% 100% no-repeat; cursor: pointer; touch-action: none; }
+#itrack { position: relative; height: 44px; background: var(--wash) center / 100% 100% no-repeat; cursor: pointer; touch-action: none; }
 #ithumbs { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: .55; }
 #iwin { position: absolute; top: 0; bottom: 0; border: 1px solid var(--ink); box-shadow: 0 0 0 9999px color-mix(in srgb, var(--bg) 55%, transparent); cursor: grab; }
 #itrack { overflow: hidden; }
-#iwin .h { position: absolute; top: -1px; bottom: -1px; width: 9px; background: var(--ink); cursor: ew-resize; }
+#iwin .h { position: absolute; top: -1px; bottom: -1px; width: 12px; background: var(--ink); cursor: ew-resize; touch-action: none; }
+#iwin .h::after { content: ''; position: absolute; left: 5px; top: 30%; bottom: 30%; width: 2px; background: var(--bg); }
 #iwin .h.l { left: -1px; } #iwin .h.r { right: -1px; }
 #iwin.locked { cursor: default; } #iwin.locked .h { display: none; }
 .irow { display: flex; justify-content: space-between; gap: 12px; color: var(--mute); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
@@ -402,7 +403,7 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
   <div class="icol">
   <div class="pvbox"><canvas id="iprev" width="16" height="9" aria-label="Frame at the start of the selection"></canvas></div>
   <div class="field">
-    <div class="row"><span>Section</span><span class="v" id="ihint">drag to move · drag the edges to trim</span></div>
+    <div class="row"><span>Section</span><span class="v" id="ihint">drag the white edges to trim · drag the middle to move</span></div>
     <div id="itrack"><canvas id="ithumbs"></canvas><div id="iwin"><div class="h l"></div><div class="h r"></div></div></div>
     <div class="irow"><span>In <b id="iin"></b></span><span>Out <b id="iout"></b></span><span>Length <b id="ilen"></b></span><span><b id="ifr"></b> frames · <b id="imem"></b></span></div>
   </div>
@@ -1148,10 +1149,9 @@ function importDialog(I, pre) {
       build();
       const [w, h] = dims(I.W0, I.H0, sel.p), n = nOf(), pl = plan(w, h, n);
       win.style.left = (sel.in / I.dur * 100) + '%'; win.style.width = (sel.len / I.dur * 100) + '%';
-      win.classList.toggle('locked', L() >= I.dur && sel.len >= I.dur);
       $('iin').textContent = fmtT(sel.in); $('iout').textContent = fmtT(sel.in + sel.len); $('ilen').textContent = fmtT(sel.len);
       $('ifr').textContent = n; $('imem').textContent = `${w}×${h} · cache ≈ ${fmtGB(n * w * h * JPEG_BPP)}`;
-      $('ihint').textContent = L() < I.dur ? `up to ${fmtT(L())} at this size · drag to move, edges to trim` : 'drag to move · edges to trim';
+      $('ihint').textContent = L() < I.dur ? `up to ${fmtT(L())} at this size · drag to move, edges to trim` : 'drag the white edges to trim · drag the middle to move';
       $('inote').textContent = `Every frame is cached at ${w}×${h}. A time map reaching across ${fmtT(pl.K / fpsOf(sel.st))} or less plays every frame at full size; wider maps step through every 2nd or 3rd frame across their reach.`;
       showIn();
     }
