@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Time Slip</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@800&family=Geist+Mono:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Instrument+Serif&display=swap">
+<style>
+/* Layout: one full-bleed canvas. Name and view switch top left, a stack of ruled sections top right,
+   a single-line transport at the bottom. Black, white and one grey; time itself is shown as grey (dark = past, light = future). */
+:root {
+  --bg: #FFFFFF;
+  --ink: #111110;
+  --mute: #8E8E89;
+  --line: #E3E3DF;
+  --wash: #F4F4F1;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0C0C0B; --ink: #ECECE8; --mute: #7C7C77; --line: #262624; --wash: #161615; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #0C0C0B; --ink: #ECECE8; --mute: #7C7C77; --line: #262624; --wash: #161615; color-scheme: dark }
+
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: var(--bg); color: var(--ink); font: 400 10.5px/1.5 var(--mono); letter-spacing: .05em; text-transform: uppercase;
+  -webkit-font-smoothing: antialiased; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#gl.paint { cursor: none; } #gl.pick { cursor: default; } #gl.orbit { cursor: grab; } #gl.orbit:active { cursor: grabbing; }
+
+button { font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--mute); background: transparent; border: 1px solid var(--line); border-radius: 0; padding: 5px 7px; cursor: pointer; line-height: 1.2; }
+button:hover { color: var(--ink); border-color: var(--ink); }
+button[aria-pressed="true"] { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+*:focus, *:focus-visible { outline: none !important; } button::-moz-focus-inner { border: 0; }
+button:disabled { opacity: .4; cursor: default; }
+
+.id { position: fixed; top: calc(20px + env(safe-area-inset-top, 0px)); left: max(20px, env(safe-area-inset-left, 0px)); display: grid; gap: 12px; max-width: calc(100% - 340px); }
+.mark { font-size: 12px; font-weight: 500; letter-spacing: .22em; margin: 0; }
+#meta { color: var(--mute); }
+.views { display: flex; gap: 0; }
+.views button { border: 0; padding: 0 12px 0 0; background: none; color: var(--mute); }
+.views button[aria-pressed="true"] { color: var(--ink); background: none; text-decoration: underline; text-underline-offset: 4px; }
+
+.panel { position: fixed; top: calc(20px + env(safe-area-inset-top, 0px)); right: max(20px, env(safe-area-inset-right, 0px)); width: 264px;
+  max-height: calc(100% - 120px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; display: grid; gap: 4px; align-content: start; scrollbar-width: thin; }
+.sec { border-top: 1px solid var(--ink); background: color-mix(in srgb, var(--bg) 94%, transparent); }
+.sec > .head { width: 100%; display: flex; justify-content: space-between; align-items: center; border: 0; padding: 7px 0 8px; color: var(--ink); background: none; }
+.sec > .head:hover { border: 0; }
+.sec > .head::after { content: "+"; font-size: 12px; line-height: 1; }
+.sec > .head[aria-expanded="true"]::after { content: "\2013"; }
+.body { display: grid; gap: 12px; padding: 4px 0 16px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.row output, .row .v { color: var(--mute); font-variant-numeric: tabular-nums; }
+.field { display: grid; gap: 4px; }
+.btns { display: flex; flex-wrap: wrap; gap: 4px; }
+.btns.fill > * { flex: 1; }
+.note { margin: 0; color: var(--mute); text-transform: none; letter-spacing: .01em; line-height: 1.55; }
+.presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.presets button { display: grid; gap: 4px; padding: 4px; justify-items: center; font-size: 9px; }
+.presets canvas { width: 100%; aspect-ratio: 16 / 9; display: block; }
+.brushbox kbd { font: inherit; opacity: .55; margin-left: 4px; }
+.tline { align-items: center; }
+.tval { display: flex; align-items: baseline; gap: 5px; color: var(--mute); }
+.tval input { width: 7ch; font: inherit; letter-spacing: inherit; color: var(--ink); background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 1px 0; text-align: right; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.tval input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.tval input:focus { border-color: var(--ink); outline: none; }
+.tval i { font-style: normal; }
+.tval b { font-weight: 400; color: var(--ink); min-width: 6ch; text-align: right; }
+.ttrack { position: relative; height: 24px; cursor: ew-resize; touch-action: none; outline-offset: 2px; }
+.ttrack .bar { position: absolute; left: 0; right: 0; top: 10px; height: 4px; background: linear-gradient(90deg, #000, #808080, #fff); outline: 1px solid var(--line); }
+.ttrack .zero { position: absolute; left: 50%; top: 5px; height: 14px; width: 1px; margin-left: -.5px; background: var(--mute); }
+.ttrack .tknob { position: absolute; top: 2px; height: 20px; width: 3px; margin-left: -1.5px; background: var(--ink); box-shadow: 0 0 0 2px var(--bg); }
+.ttrack.off .tknob { opacity: .3; }
+.src { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.src .row b { font-weight: 400; color: var(--ink); font-variant-numeric: tabular-nums; }
+#levels { position: fixed; z-index: 6; left: max(20px, env(safe-area-inset-left, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: 320px; max-width: calc(100% - 32px);
+  max-height: calc(100% - 140px); overflow-y: auto; box-sizing: border-box; background: var(--bg); border-top: 1px solid var(--ink); display: grid; gap: 12px; padding: 10px 0 14px; }
+#levels .top { display: flex; justify-content: space-between; gap: 12px; }
+#levels .top .v { color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#levels .histbox { padding: 0 6px 2px; }
+#hist { position: relative; height: 72px; background: var(--wash); touch-action: none; cursor: ew-resize; }
+#hist canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#hist .h { position: absolute; bottom: -7px; width: 0; height: 0; margin-left: -6px; border: 6px solid transparent; border-bottom: 7px solid var(--ink); border-top: 0; }
+#hist .h.g { border-bottom-color: var(--mute); }
+#lout { display: block; width: 100%; height: 8px; margin-top: 4px; outline: 1px solid var(--line); }
+.lnums { display: flex; justify-content: space-between; color: var(--mute); font-variant-numeric: tabular-nums; }
+#levels .iact { display: flex; justify-content: flex-end; gap: 4px; }
+#lok { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+@media (max-width: 860px) { #levels { left: 16px; right: 16px; width: auto; max-width: none; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); } }
+.ends { display: grid; grid-template-columns: 1fr auto 1fr; color: var(--mute); font-variant-numeric: tabular-nums; margin-top: -2px; }
+.ends span:last-child { text-align: right; }
+.nums { display: flex; gap: 8px; }
+.nums label { flex: 1; display: flex; align-items: center; gap: 6px; color: var(--mute); }
+.nums input { flex: 1; min-width: 0; width: 100%; font: inherit; letter-spacing: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 0; padding: 4px 6px; text-align: right; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.nums input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.nums input:focus { border-color: var(--ink); outline: none; }
+.nums i { font-style: normal; }
+#amtrow output { margin-left: 4px; }
+.typerow { display: flex; gap: 4px; }
+select { font: inherit; letter-spacing: inherit; text-transform: none; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 0; padding: 5px 6px; width: 100%; }
+.lnk { border: 0; padding: 0; background: none; color: var(--mute); text-decoration: underline; text-underline-offset: 3px; }
+.lnk:hover { color: var(--ink); }
+.lnk:disabled { opacity: .35; text-decoration: none; }
+.lyrs { list-style: none; margin: 0; padding: 0; max-height: 200px; overflow-y: auto; border-top: 1px solid var(--line); }
+.lyr { display: grid; grid-template-columns: 16px 10px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 5px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.lyr:hover { background: var(--wash); }
+.lyr[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+.lyr .eye { border: 0; padding: 0; width: 16px; color: inherit; background: none; font-size: 11px; line-height: 1; }
+.lyr .sw { width: 10px; height: 10px; outline: 1px solid var(--line); }
+.lyr .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: none; letter-spacing: .02em; }
+.lyr .tm, .lyr .bl { color: var(--mute); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lyr[aria-selected="true"] .tm, .lyr[aria-selected="true"] .bl { color: inherit; opacity: .7; }
+.lyr.off .nm, .lyr.off .sw { opacity: .4; }
+#led { display: grid; gap: 8px; padding: 10px 0 2px; }
+#led b { font-weight: 400; text-transform: none; letter-spacing: .02em; }
+#ramcv { position: fixed; pointer-events: none; }
+#ovl { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: difference; }
+#scrubloop { position: absolute; top: calc(50% - 7px); height: 15px; border-left: 1px solid var(--ink); border-right: 1px solid var(--ink); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.tcw { display: inline-flex; align-items: center; gap: 8px; }
+#qdot { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--ink); background: var(--ink); box-sizing: border-box; }
+#qdot.wait { background: transparent; }
+#restore, #hint { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--bg); border-top: 1px solid var(--ink); padding: 8px 0 8px 2px; max-width: calc(100% - 32px); }
+#restore { top: calc(20px + env(safe-area-inset-top, 0px)); }
+#toast { position: fixed; z-index: 9; left: 50%; top: calc(20px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 7px 12px; max-width: calc(100% - 32px); transition: opacity .35s; }
+#toast.out { opacity: 0; }
+#hint { bottom: calc(60px + env(safe-area-inset-bottom, 0px)); text-transform: none; letter-spacing: .02em; }
+#restore button, #hint button { padding: 4px 8px; }
+#rok, #hnext { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+#hclose { border: 0; font-size: 14px; }
+#keys { position: fixed; inset: 0; z-index: 8; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 82%, transparent); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#keys .kbox { width: min(820px, 100%); max-height: calc(100% - 32px); overflow-y: auto; background: var(--bg); border-top: 1px solid var(--ink); padding: 10px 0 18px; display: grid; gap: 14px; }
+#keys .top { display: flex; justify-content: space-between; align-items: center; }
+.kgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 18px 28px; }
+.kgrid .spec { grid-template-columns: max-content 1fr; align-content: start; row-gap: 7px; } .kgrid .spec dt { color: var(--ink); white-space: nowrap; } .kgrid .spec dd { color: var(--mute); text-align: left; text-transform: none; letter-spacing: .02em; }
+.kgrid .kh { grid-column: 1 / -1; color: var(--mute) !important; border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-bottom: 2px; }
+.views #help { margin-left: 4px; padding: 0 6px; border: 1px solid var(--line); color: var(--mute); text-decoration: none; }
+.views #vcmp[aria-pressed="true"] { color: var(--ink); background: none; text-decoration: underline; text-underline-offset: 4px; }
+.typerow input { flex: 1; min-width: 0; font: inherit; letter-spacing: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 0; padding: 5px 7px; }
+.typerow input:focus { border-color: var(--ink); outline: none; }
+#import { position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 80%, transparent); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#import .dlg { width: min(940px, 100%); max-height: calc(100% - 32px); overflow-y: auto; box-sizing: border-box; background: var(--bg); border-top: 1px solid var(--ink);
+  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px 28px; padding: 10px 0 16px; align-items: start; }
+#import .top { grid-column: 1 / -1; }
+#import .icol { display: grid; gap: 14px; min-width: 0; align-content: start; }
+#import .icol:last-child { height: 100%; grid-template-rows: auto auto 1fr auto; }
+#import .icol .iact { align-self: end; }
+.pvbox { display: grid; place-items: center; background: var(--wash); }
+@media (max-width: 760px), (max-height: 560px) and (max-width: 1100px) {
+  #import .dlg { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  #import .icol:last-child { height: auto; grid-template-rows: none; }
+  #iprev { max-height: 24vh; }
+}
+#import .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+#import .top .v { color: var(--mute); text-align: right; }
+#iprev { display: block; max-width: 100%; max-height: min(42vh, 380px); width: auto; height: auto; }
+.opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
+.opts button { display: grid; gap: 2px; text-align: left; padding: 7px 8px; color: var(--ink); }
+.opts button[aria-pressed="true"] { color: var(--bg); }
+.opts button small { font-size: 9px; opacity: .6; letter-spacing: .04em; }
+.opts button:disabled small { opacity: 1; }
+#itrack { position: relative; height: 40px; background: var(--wash) center / 100% 100% no-repeat; cursor: pointer; touch-action: none; }
+#ithumbs { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: .55; }
+#iwin { position: absolute; top: 0; bottom: 0; border: 1px solid var(--ink); box-shadow: 0 0 0 9999px color-mix(in srgb, var(--bg) 55%, transparent); cursor: grab; }
+#itrack { overflow: hidden; }
+#iwin .h { position: absolute; top: -1px; bottom: -1px; width: 9px; background: var(--ink); cursor: ew-resize; }
+#iwin .h.l { left: -1px; } #iwin .h.r { right: -1px; }
+#iwin.locked { cursor: default; } #iwin.locked .h { display: none; }
+.irow { display: flex; justify-content: space-between; gap: 12px; color: var(--mute); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.irow b { color: var(--ink); font-weight: 400; }
+.iact { display: flex; justify-content: flex-end; gap: 4px; }
+.iact #igo { color: var(--bg); background: var(--ink); border-color: var(--ink); padding: 8px 16px; }
+#empty { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; }
+#empty .box { pointer-events: auto; display: grid; gap: 14px; justify-items: center; text-align: center; padding: 48px 56px; border: 1px dashed var(--line); width: min(440px, calc(100% - 64px)); box-sizing: border-box; }
+#empty.over .box { border-color: var(--ink); }
+#empty .big { font-size: 12px; font-weight: 500; letter-spacing: .22em; }
+#empty .note { max-width: 32ch; }
+#empty button { color: var(--bg); background: var(--ink); border-color: var(--ink); padding: 8px 14px; }
+#mapview { width: 100%; display: block; image-rendering: auto; background: var(--wash); }
+.ramp { display: grid; grid-template-columns: 1fr auto 1fr; color: var(--mute); font-variant-numeric: tabular-nums; }
+.ramp span:last-child { text-align: right; }
+.ramp i { grid-column: 1 / -1; height: 4px; background: linear-gradient(90deg, #000, #808080, #fff); margin-bottom: 3px; outline: 1px solid var(--line); }
+.spec { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; color: var(--mute); }
+.spec dd { margin: 0; text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
+.exp { display: grid; gap: 0; }
+.mapsub { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--ink); }
+#expmore { color: var(--mute); }
+.exp .more[hidden] { display: none; }
+.exp button { display: flex; justify-content: space-between; border: 0; border-bottom: 1px solid var(--line); padding: 8px 0; color: var(--ink); background: none; }
+.exp button span { color: var(--mute); }
+.exp button:hover { background: none; border-color: var(--ink); }
+#expnote { min-height: 1.5em; }
+
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; margin: 0; background: transparent; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 1px; background: var(--line); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 3px; height: 12px; margin-top: -5.5px; background: var(--ink); border: 0; border-radius: 0; }
+input[type="range"]::-moz-range-track { height: 1px; background: var(--line); }
+input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: var(--ink); border: 0; border-radius: 0; }
+
+.transport { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); width: min(720px, calc(100% - 40px));
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto auto auto; gap: 14px; align-items: center; }
+.transport button { border: 0; padding: 4px; color: var(--ink); background: none; }
+#play { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; }
+#play svg { width: 11px; height: 11px; fill: currentColor; }
+#scrub { position: relative; height: 22px; cursor: ew-resize; touch-action: none; }
+#scrub::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line); }
+#scrubfill { position: absolute; left: 0; top: 50%; height: 1px; background: var(--ink); }
+#scrubcache { position: absolute; left: 0; width: 100%; bottom: 1px; height: 3px; pointer-events: none; image-rendering: pixelated; }
+#scrubspan { position: absolute; top: calc(50% - 4px); height: 9px; background: var(--ink); opacity: .1; }
+#scrubhead { position: absolute; top: calc(50% - 6px); width: 2px; height: 13px; margin-left: -1px; background: var(--ink); }
+#tc { font-variant-numeric: tabular-nums; white-space: nowrap; }
+#tc span { color: var(--mute); }
+#sound { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; color: var(--mute); }
+#sound[aria-pressed="true"] { color: var(--ink); background: none; }
+#sound svg { width: 13px; height: 13px; fill: currentColor; stroke: currentColor; }
+#res, #ram { color: var(--mute); text-transform: uppercase; letter-spacing: .06em; } #ram.on { color: var(--ink); }
+#rate { color: var(--mute); font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; }
+
+#brush { position: fixed; left: 0; top: 0; pointer-events: none; border: 1px solid #fff; border-radius: 50%; mix-blend-mode: difference; opacity: 0; }
+#brush.on { opacity: 1; }
+#bhud { position: fixed; left: 0; top: 0; pointer-events: none; color: #fff; mix-blend-mode: difference; opacity: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#bhud.on { opacity: 1; }
+#brush.future { border-style: dashed; }
+#brush.erase { border-style: dotted; }
+#brush::after { content: ""; position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px; background: #fff; border-radius: 50%; }
+
+#status { position: fixed; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 86%, transparent); z-index: 5; }
+#status .box { display: grid; gap: 10px; width: min(260px, 80%); text-align: center; }
+#status .track { height: 1px; background: var(--line); }
+#status .fill { height: 100%; width: 0; background: var(--ink); }
+#status .sub { color: var(--mute); }
+
+@media (max-width: 860px) {
+  .id { max-width: calc(100% - 40px); }
+  .panel { top: auto; position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: auto;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px)); max-height: 46%; }
+  .transport { width: calc(100% - 32px); gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<canvas id="gl" aria-label="Video canvas"></canvas>
+<canvas id="ramcv" aria-hidden="true" hidden></canvas>
+<canvas id="ovl" aria-hidden="true"></canvas>
+
+<header class="id">
+  <h1 class="mark">Time Slip</h1>
+  <span id="meta">No video loaded</span>
+  <div class="views" role="group" aria-label="View">
+    <button type="button" id="vframe" aria-pressed="true" title="The result: every part of the frame drawn from its own moment (V)">Frame</button>
+    <button type="button" id="vblock" aria-pressed="false" title="The clip as a stack of frames, with the time map as the surface cutting through it (V)">Block</button>
+    <button type="button" id="vcmp" aria-pressed="false" title="Split the frame: original on the left, time map on the right (C)">Compare</button>
+    <button type="button" id="help" title="Shortcuts (?)">?</button>
+  </div>
+</header>
+
+<aside class="panel" aria-label="Controls">
+  <section class="sec">
+    <button type="button" class="head" aria-expanded="false" aria-controls="b-src">Source</button>
+    <div class="body" id="b-src" hidden>
+      <div class="btns fill">
+        <button type="button" id="load">Load video</button>
+        <button type="button" id="popen" title="Open a .timeslip project (⌘O)">Open project</button>
+        <button type="button" id="psave" title="Save the map and settings as a .timeslip project (⌘S)">Save project</button>
+      </div>
+      <dl class="spec" id="spec"></dl>
+      <p class="note">Every frame is cached at the size above. Graphics memory holds a stretch of full-size frames around the playhead; anything outside it shows the block’s smaller copy until the full frame arrives (the dot beside the timecode is hollow while that happens). Exports always wait for full-size frames. A project keeps the map and settings, not the video: open it, then load the clip it was made with.</p>
+      <input type="file" id="file" accept="video/*" hidden>
+      <input type="file" id="pfile" accept=".timeslip,.timemachine,.timetool,.json,application/json" hidden>
+    </div>
+  </section>
+
+  <section class="sec">
+    <button type="button" class="head" aria-expanded="true" aria-controls="b-map">Map</button>
+    <div class="body" id="b-map">
+      <div class="presets" id="presets">
+        <button type="button" data-p="flat"><canvas width="32" height="18"></canvas>Flat</button>
+        <button type="button" data-p="tilt"><canvas width="32" height="18"></canvas>Tilt</button>
+        <button type="button" data-p="fall"><canvas width="32" height="18"></canvas>Fall</button>
+        <button type="button" data-p="radial"><canvas width="32" height="18"></canvas>Radial</button>
+        <button type="button" data-p="tunnel"><canvas width="32" height="18"></canvas>Tunnel</button>
+      </div>
+      <canvas id="mapview" width="16" height="9" aria-label="The current time map"></canvas>
+      <div class="ramp"><i></i><span id="lpast">−0.00 S</span><span>now</span><span id="lfut">+0.00 S</span></div>
+      <div class="btns fill">
+        <button type="button" id="overlay" aria-pressed="false" title="Show the map over the frame (M)">Show map</button>
+        <button type="button" id="invert" title="Swap past and future in the selected layers, or in all of them">Invert</button>
+        <button type="button" id="clearmap" title="Remove every layer and go back to a flat map">Clear</button>
+      </div>
+      <div class="field">
+        <div class="row"><span>History</span><span class="v"><button type="button" class="lnk" id="undo" title="Undo (⌘Z)">Undo</button> · <button type="button" class="lnk" id="redo" title="Redo (⇧⌘Z)">Redo</button></span></div>
+     </div>
+    
+    </div>
+  </section>
+
+  <section class="sec">
+    <button type="button" class="head" aria-expanded="true" aria-controls="b-brush">Brush</button>
+    <div class="body" id="b-brush">
+      <div class="btns fill" role="group" aria-label="Tool">
+        <button type="button" id="bbrush" aria-pressed="true" title="Paint time into the frame (B)">Brush <kbd>B</kbd></button>
+        <button type="button" id="berase" aria-pressed="false" title="Paint back to now (E, or hold Shift)">Erase <kbd>E</kbd></button>
+      </div>
+      <div class="field brushbox">
+        <div class="row tline"><label for="btime">Time</label><span class="tval"><input type="number" id="btime" step="0.01" value="-0.50"><i>s</i><b id="tword">past</b></span></div>
+        <div id="ttrack" class="ttrack" role="slider" tabindex="-1" aria-label="Brush time: left is the past, right is the future"><i class="bar"></i><i class="zero"></i><i class="tknob"></i></div>
+        <div class="ends"><span id="tpast">past</span><span>now</span><span id="tfut">future</span></div>
+        <div class="row"><label for="bsize">Size</label><output id="bsizeout"></output></div>
+        <input type="range" id="bsize" min="1" max="60" value="12">
+      </div>
+      <div class="field">
+        <div class="row"><span>Blend</span><span class="v" id="amtrow"><span id="amtlabel">Feather</span> <output id="amtout"></output></span></div>
+        <div class="btns fill" role="group" aria-label="Blend for every stroke">
+          <button type="button" id="mnone" aria-pressed="false" title="Hard edges between times">None</button>
+          <button type="button" id="mfeather" aria-pressed="true" title="Soft edges that melt one time into the next">Feather</button>
+          <button type="button" id="mripple" aria-pressed="false" title="Edges that move like water; strokes drop ripples">Ripple</button>
+        </div>
+        <input type="range" id="amt" min="0" max="100" value="30" aria-label="Blend amount for new strokes">
+      </div>
+      <div class="field">
+        <div class="row"><span>Pen pressure</span><span class="v">tablet or Apple Pencil</span></div>
+        <div class="btns fill" role="group" aria-label="Pen pressure">
+          <button type="button" id="poff">Off</button>
+          <button type="button" id="ptime" aria-pressed="true" title="Pressing harder reaches further in time">Time</button>
+          <button type="button" id="psize" title="Pressing harder paints wider">Size</button>
+        </div>
+      </div>
+      <p class="note">On the frame, hold ⌥ Option (Alt) and drag: left into the past, right into the future, up and down for size; add Shift for finer steps. ⌥ click picks up the time under the cursor.</p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <button type="button" class="head" aria-expanded="false" aria-controls="b-ti">Text and image</button>
+    <div class="body" id="b-ti" hidden>
+      <p class="note">Make the map from a word or an image instead of painting it.</p>
+      <div class="row"><span id="tmode">Text</span><span class="v">letters <b id="typeval"></b></span></div>
+      <div class="typerow"><input type="text" id="typetext" value="NOW" maxlength="40" spellcheck="false" autocomplete="off" aria-label="Text"><button type="button" id="typeset">Add</button></div>
+      <select id="tfont" aria-label="Typeface">
+        <option value="0">Geist · heavy sans</option>
+        <option value="1">Bricolage Grotesque · display</option>
+        <option value="2">Instrument Serif · serif</option>
+        <option value="3">Geist Mono · mono</option>
+      </select>
+      <div class="field"><div class="row"><label for="tsize">Size</label><output id="tsizeout"></output></div>
+        <input type="range" id="tsize" min="6" max="95" value="38"></div>
+      <div id="ttype" class="ttrack" role="slider" tabindex="-1" aria-label="Time of the letters: left is the past, right is the future"><i class="bar"></i><i class="zero"></i><i class="tknob"></i></div>
+      <p class="note">The text sits in the middle of the frame. Change the words, font, size or time and it updates.</p>
+    
+      <div class="row mapsub"><span>Image</span></div>
+      <div class="btns fill"><button type="button" id="imgmap">Load image</button><button type="button" id="imglev" disabled>Levels</button></div>
+      <p class="note">Greys become time. Levels sets which greys matter and what time the darkest and lightest take. A new image replaces the last one.</p>
+      <input type="file" id="imgfile" accept="image/*" hidden>
+    </div>
+  </section>
+
+  <section class="sec">
+    <button type="button" class="head" aria-expanded="false" aria-controls="b-blk">Block</button>
+    <div class="body" id="b-blk" hidden>
+      <p class="note">The whole clip as a block, first frame at the front. As it plays, the frames already played disappear, and the face that’s left is the current frame shaped by the time map.</p>
+      <div class="btns fill" role="group" aria-label="Camera">
+        <button type="button" data-cam="front">Front</button><button type="button" data-cam="side">Side</button><button type="button" data-cam="top">Top</button><button type="button" data-cam="three">¾</button>
+      </div>
+      <div class="field">
+        <div class="row"><label for="op">Opacity</label><output id="opout"></output></div>
+        <input type="range" id="op" min="2" max="100" value="35">
+      </div>
+      <div class="field">
+        <div class="row"><label for="depth">Spacing</label><output id="depthout"></output></div>
+        <input type="range" id="depth" min="10" max="120" value="40">
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <button type="button" class="head" aria-expanded="false" aria-controls="b-exp">Export</button>
+    <div class="body" id="b-exp" hidden>
+      <div class="exp">
+        <button type="button" data-x="still">Still <span>.png</span></button>
+        <button type="button" data-x="video">Video <span>.mp4</span></button>
+        <button type="button" data-x="map">Time map <span>.png</span></button>
+        <button type="button" id="expmore" aria-expanded="false">More <span>+</span></button>
+        <button type="button" class="more" data-x="seq" hidden>Frames <span>.png × n, .zip</span></button>
+        <button type="button" class="more" data-x="orbit" hidden>Block orbit <span>.mp4</span></button>
+        <button type="button" class="more" data-x="glb" hidden>Block for Blender, Cinema 4D <span>.glb, .zip</span></button>
+      </div>
+      <p class="note" id="exprange"></p>
+      <p class="note" id="expnote">Still and video export what you see, at full size. The time map is for After Effects’ Time Displacement: set Max Displacement Time to the reach in its file name.</p>
+    </div>
+  </section>
+</aside>
+
+<footer class="transport" aria-label="Transport">
+  <button type="button" id="play" title="Play / pause (Space)"><svg viewBox="0 0 12 12" id="playicon"></svg></button>
+  <div id="scrub" role="slider" tabindex="-1" aria-label="Playhead"><canvas id="scrubcache" aria-hidden="true"></canvas><div id="scrubloop"></div><div id="scrubspan"></div><div id="scrubfill"></div><div id="scrubhead"></div></div>
+  <span class="tcw"><i id="qdot" title="Full-size frames"></i><span id="tc">0001 <span>/ 0096</span></span></span>
+  <button type="button" id="sound" aria-pressed="true" title="Sound (S)" hidden><svg viewBox="0 0 13 13" id="soundicon"></svg></button>
+  <button type="button" id="rate" title="Speed (↑ ↓)">1×</button>
+  <button type="button" id="res" title="Playback resolution">Full</button>
+  <button type="button" id="ram" title="Render a smooth preview of the loop range, or the whole clip (R)">Preview</button>
+</footer>
+
+<div id="import" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="ititle">
+  <div class="top"><span id="ititle">Import</span><span class="v" id="isrc"></span></div>
+  <div class="icol">
+  <div class="pvbox"><canvas id="iprev" width="16" height="9" aria-label="Frame at the start of the selection"></canvas></div>
+  <div class="field">
+    <div class="row"><span>Section</span><span class="v" id="ihint">drag to move · drag the edges to trim</span></div>
+    <div id="itrack"><canvas id="ithumbs"></canvas><div id="iwin"><div class="h l"></div><div class="h r"></div></div></div>
+    <div class="irow"><span>In <b id="iin"></b></span><span>Out <b id="iout"></b></span><span>Length <b id="ilen"></b></span><span><b id="ifr"></b> frames · <b id="imem"></b></span></div>
+  </div>
+  </div>
+  <div class="icol">
+  <div class="field"><div class="row"><span>Size</span><span class="v">smaller keeps more at full size</span></div><div class="opts" id="isize"></div></div>
+  <div class="field"><div class="row"><span>Frame rate</span></div><div class="opts" id="irate"></div></div>
+  <p class="note" id="inote"></p>
+  <div class="iact"><button type="button" id="icancel">Cancel</button><button type="button" id="igo">Import</button></div>
+  </div>
+</div></div>
+<div id="empty"><div class="box">
+  <span class="big">Drop a video</span>
+  <button type="button" id="load2">Load video</button>
+  <p class="note">MP4 or WebM. The clip stays on your computer. Paint a time map over it, then look at it as a frame or as a block of time.</p>
+</div></div>
+<div id="levels" hidden role="dialog" aria-labelledby="ltitle">
+  <div class="top"><span id="ltitle">Levels</span><span class="v" id="lname"></span></div>
+  <div class="histbox">
+    <div id="hist" aria-label="Histogram of the image. Drag the markers to set the black point, mid grey and white point."><canvas id="histc"></canvas><i class="h" id="hb"></i><i class="h g" id="hm"></i><i class="h" id="hw"></i></div>
+    <canvas id="lout" width="256" height="1" aria-label="The time each grey becomes"></canvas>
+    <div class="lnums"><span id="lbn">0</span><span id="lmn">1.00</span><span id="lwn">255</span></div>
+  </div>
+  <div class="field"><div class="row"><span>Darkest becomes</span><b class="v" id="ldv"></b></div>
+    <div id="tdark" class="ttrack" role="slider" tabindex="-1" aria-label="Time for the darkest greys"><i class="bar"></i><i class="zero"></i><i class="tknob"></i></div></div>
+  <div class="field"><div class="row"><span>Lightest becomes</span><b class="v" id="llv"></b></div>
+    <div id="tlight" class="ttrack" role="slider" tabindex="-1" aria-label="Time for the lightest greys"><i class="bar"></i><i class="zero"></i><i class="tknob"></i></div></div>
+  <div class="iact"><button type="button" id="lswap">Swap</button><button type="button" id="lreset">Reset</button><span style="flex:1"></span><button type="button" id="lcancel">Cancel</button><button type="button" id="lok">Apply</button></div>
+</div>
+<div id="brush"></div><div id="bhud"></div>
+<div id="toast" hidden role="status" aria-live="polite"></div>
+<div id="restore" hidden><span id="restoretext">Restore the map from your last session with this clip?</span><button type="button" id="rok">Restore</button><button type="button" id="rno">Dismiss</button></div>
+<div id="hint" hidden><span id="hinttext"></span><span class="v" id="hintn"></span><button type="button" id="hnext">Next</button><button type="button" id="hclose" aria-label="Hide tips">×</button></div>
+<div id="keys" hidden role="dialog" aria-modal="true" aria-labelledby="ktitle"><div class="kbox">
+  <div class="top"><span id="ktitle">Shortcuts</span><button type="button" id="kclose">Close</button></div>
+  <div class="kgrid">
+    <dl class="spec"><dt class="kh">Playback</dt>
+      <dt>Space</dt><dd>play / pause</dd><dt>← →  , .</dt><dd>step a frame</dd><dt>↑ ↓</dt><dd>speed</dd><dt>I  O</dt><dd>loop in / out</dd><dt>X</dt><dd>clear loop</dd><dt>R</dt><dd>render a smooth preview</dd><dt>S</dt><dd>sound</dd></dl>
+    <dl class="spec"><dt class="kh">Painting</dt>
+      <dt>B  E</dt><dd>brush, erase</dd><dt>⌥ drag</dt><dd>← past · → future · ↕ size</dd><dt>⌥ click</dt><dd>pick up time</dd><dt>⇧ drag</dt><dd>erase</dd><dt>[  ]</dt><dd>brush size</dd><dt>−  =</dt><dd>brush time</dd></dl>
+    <dl class="spec"><dt class="kh">Map</dt>
+      <dt>⌘Z  ⇧⌘Z</dt><dd>undo, redo</dd><dt>Esc</dt><dd>stop an export</dd><dt>1–5</dt><dd>base preset</dd></dl>
+    <dl class="spec"><dt class="kh">View and files</dt>
+      <dt>V</dt><dd>frame / block</dd><dt>C</dt><dd>compare with original</dd><dt>M</dt><dd>show map</dd><dt>L</dt><dd>load video</dd><dt>⌘S  ⌘O</dt><dd>save, open project</dd><dt>?</dt><dd>this sheet</dd></dl>
+  </div>
+</div></div>
+<div id="status" hidden><div class="box"><span id="stext">Loading</span><div class="track"><div class="fill" id="sfill"></div></div><span class="sub" id="ssub"></span></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mp4box@0.5.4/dist/mp4box.all.min.js"></script>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const TAU = Math.PI * 2;
+const hasRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+const FPS_SNAP = [23.976, 24, 25, 29.97, 30, 48, 50, 59.94, 60];
+const RATES = [.25, .5, 1, 2];
+const MOBILE = matchMedia('(pointer: coarse)').matches;
+// Graphics memory Time Slip may use: full-size frames around the playhead, plus a smaller copy of every frame for the block.
+let BUDGET = MOBILE ? 300e6 : Math.min(2.4e9, Math.max(.8e9, (navigator.deviceMemory || 8) * .2e9));
+const JPEG_BPP = .35, CACHE_MAX = 6e9, MAXN = 20000;         // cache: every frame kept as a high-quality JPEG
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const S = { pres: 1, view: 'frame', t: 0, playing: !reduce, rateI: 2, btime: -.5, bsize: .12, mode: 'brush', overlay: false,
+  blend: 'feather', amt: .3, press: 'time', op: .35, depth: 4, sound: true, cmp: false, cmpX: .5, lin: null, lout: null, ttime: -.5, tsize: .38 };
+let clip = null, dirty = true, busy = false, cancel = false;
+const cam = { yaw: .745, pitch: .33, dist: 10 }; let camTo = null;
+const T0 = performance.now(); let rnow = 0;
+const drops = new Float32Array(32); let dropI = 0, lastDrop = 0;
+function addDrop(u, v) { if (reduce) return; drops.set([u, v, rnow, 1], dropI * 4); dropI = (dropI + 1) % 8; lastDrop = performance.now(); }
+
+/* ---------------- WebGL ---------------- */
+const cv = $('gl');
+const gl = cv.getContext('webgl2', { antialias: true, alpha: true, premultipliedAlpha: false, preserveDrawingBuffer: true });
+// ring: K full-size frames, any unit (= frame / rs) in any slot. slots: for each unit, the slot holding it or −1 (4096 wide).
+// prox: a smaller copy of every ps-th frame. Any frame not yet in the ring is drawn from prox until it arrives.
+// tmap: R = the time map in seconds, + past, − future; G = how strongly that spot ripples. (The brush time is the other way round: − past, + future, as on a timeline.)
+const HEAD = `#version 300 es
+precision highp float; precision highp sampler2DArray; precision highp sampler2D;
+uniform sampler2DArray ring, prox; uniform sampler2D tmap, slots;
+uniform float t, fps, N, K, rs, ps, PN, mx, rip, now, aspect, cmp;
+uniform vec4 drops[8];
+float mapAt(vec2 q) { return texture(tmap, q).r; }
+float ripAt(vec2 q) { return texture(tmap, q).g; }
+vec3 ripple(vec2 q) {
+  float lr = ripAt(q) * rip; if (lr <= .002) return vec3(0.);   // each layer's own ripple strength
+  float n = max(mx, 1e-3), h = .006;
+  vec2 g = vec2(mapAt(q + vec2(h, 0.)) - mapAt(q - vec2(h, 0.)), mapAt(q + vec2(0., h * aspect)) - mapAt(q - vec2(0., h * aspect))) / n;
+  float gm = length(g), edge = clamp(gm * 5., 0., 1.), ph = mapAt(q) / n * 12. - now * 2.4;
+  vec2 dir = gm > 1e-5 ? g / gm : vec2(0.);
+  vec2 off = dir * sin(ph) * lr * .012 * edge; float ts = sin(ph) * lr * .1 * edge;
+  for (int k = 0; k < 8; k++) {
+    vec4 d = drops[k]; float age = now - d.z;
+    if (d.w <= 0. || age < 0. || age > 3.) continue;
+    vec2 dd = (q - d.xy) * vec2(aspect, 1.); float r = length(dd), fr = age * .32;
+    float w = sin((r - fr) * 70.) * exp(-age * 1.3) * exp(-(r - fr) * (r - fr) * 81.);
+    off += (r > 1e-5 ? dd / r : vec2(0.)) / vec2(aspect, 1.) * w * lr * .014;
+    ts += w * lr * .15;
+  }
+  return vec3(off, ts * n * fps);
+}
+float timeOf(vec2 q, float dz) { return mod(t - mapAt(q) * fps + dz, N); }      // loops: past the start plays from the end
+float timeAt(vec2 q) { vec3 r = ripple(q); return timeOf(clamp(q + r.xy, 0., 1.), r.z); }
+float timeFlat(vec2 q) { return timeOf(q, 0.); }      // without ripple: for the block's sheets, which are drawn many times over
+vec3 unitColor(vec2 q, float u) {
+  int ui = int(u); float sl = texelFetch(slots, ivec2(ui % 4096, ui / 4096), 0).r;     // which ring slot holds this unit, or −1
+  if (sl > -.5) return texture(ring, vec3(q, sl)).rgb;
+  return texture(prox, vec3(q, clamp(floor(u * rs / ps + .5), 0., PN - 1.))).rgb;
+}
+vec3 frameAt(vec2 q, float f) {
+  float g = f / rs, u0 = floor(g), a = g - u0, um = floor((N - 1.) / rs), u1 = u0 + 1. > um ? 0. : u0 + 1.; u0 = min(u0, um);
+  vec3 c0 = unitColor(q, u0); if (a < .002) return c0;
+  return mix(c0, unitColor(q, u1), a);
+}
+`;
+const SRC = {
+  quadVS: HEAD + `in vec2 p; out vec2 uv; void main() { uv = vec2(p.x * .5 + .5, .5 - p.y * .5); gl_Position = vec4(p, 0., 1.); }`,
+  flatFS: HEAD + `uniform float mode, layer, tint; in vec2 uv; out vec4 o;
+    void main() {
+      if (mode > 1.5) {                                   // one block sheet, with the cut baked into alpha
+        vec3 c = texture(prox, vec3(uv, layer)).rgb;
+        o = vec4(c, layer * ps < timeAt(uv) - .001 ? 0. : 1.); return;
+      }
+      if (mode > .5) { o = vec4(vec3(.5 - clamp(mapAt(uv) / max(mx, 1e-3), -1., 1.) * .5), 1.); return; }
+      if (cmp >= 0. && uv.x < cmp) { o = vec4(frameAt(uv, t), 1.); return; }   // compare: the untouched frame left of the line
+      vec3 r = ripple(uv); vec2 q = clamp(uv + r.xy, 0., 1.);
+      vec3 c = frameAt(q, timeOf(q, r.z));
+      if (tint > .5) c = mix(c, vec3(.5 - clamp(mapAt(q) / max(mx, 1e-3), -1., 1.) * .5), .75);
+      o = vec4(c, 1.);
+    }`,
+  surfVS: HEAD + `in vec2 p; uniform mat4 mvp; uniform float s, W2; out vec2 uv; out float ft;
+    void main() { uv = p; ft = timeAt(p); float z = (.5 - ft / max(N - 1., 1.)) * s;
+      gl_Position = mvp * vec4((p.x - .5) * W2, (.5 - p.y) * 2., z, 1.); }`,
+  surfFS: HEAD + `uniform float alpha; in vec2 uv; in float ft; out vec4 o; void main() { o = vec4(frameAt(uv, ft), alpha); }`,
+  solidFS: HEAD + `uniform vec4 col; out vec4 o; void main() { o = col; }`,
+  sheetVS: HEAD + `in vec2 p; uniform mat4 mvp; uniform float s, W2, layer; out vec2 uv;
+    void main() { uv = p; float z = (.5 - layer * ps / max(N - 1., 1.)) * s; gl_Position = mvp * vec4((p.x - .5) * W2, (.5 - p.y) * 2., z, 1.); }`,
+  sheetFS: HEAD + `uniform float layer, alpha; in vec2 uv; out vec4 o;
+    void main() {
+      if (layer * ps < timeFlat(uv) - .001) discard;    // frames already played are gone; the surface is where the block has been eaten to
+      o = vec4(texture(prox, vec3(uv, layer)).rgb, alpha);
+    }`,
+  lineVS: HEAD + `in vec3 p; uniform mat4 mvp; uniform vec3 sz; uniform float zc; void main() { gl_Position = mvp * vec4(p * sz + vec3(0., 0., zc), 1.); }`,
+};
+const P = {};
+function prog(vs, fs) {
+  const sh = (type, s) => { const o = gl.createShader(type); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+  const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+  gl.bindAttribLocation(p, 0, 'p'); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  const cache = {}; p.u = n => (n in cache ? cache[n] : (cache[n] = gl.getUniformLocation(p, n)));
+  gl.useProgram(p); gl.uniform1i(p.u('ring'), 0); gl.uniform1i(p.u('tmap'), 1); gl.uniform1i(p.u('prox'), 2); gl.uniform1i(p.u('slots'), 3);
+  return p;
+}
+const VAO = {};
+function vao(data, size, idx) {
+  const a = gl.createVertexArray(); gl.bindVertexArray(a);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, size, gl.FLOAT, false, 0, 0);
+  if (idx) { gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW); }
+  gl.bindVertexArray(null); a.count = idx ? idx.length : data.length / size; return a;
+}
+const GX = 96, GY = 54;
+function initGL() {
+  P.flat = prog(SRC.quadVS, SRC.flatFS); P.surf = prog(SRC.surfVS, SRC.surfFS); P.rim = prog(SRC.surfVS, SRC.solidFS);
+  P.sheet = prog(SRC.sheetVS, SRC.sheetFS); P.line = prog(SRC.lineVS, SRC.solidFS);
+  VAO.quad = vao(new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), 2);
+  VAO.sheet = vao(new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), 2);
+  const g = new Float32Array((GX + 1) * (GY + 1) * 2), id = [];
+  for (let y = 0; y <= GY; y++) for (let x = 0; x <= GX; x++) { const k = (y * (GX + 1) + x) * 2; g[k] = x / GX; g[k + 1] = y / GY; }
+  for (let y = 0; y < GY; y++) for (let x = 0; x < GX; x++) { const a = y * (GX + 1) + x, b = a + 1, c = a + GX + 1, d = c + 1; id.push(a, c, b, b, c, d); }
+  VAO.surf = vao(g, 2, new Uint16Array(id));
+  const rim = []; for (let x = 0; x <= GX; x++) rim.push(x); for (let y = 1; y <= GY; y++) rim.push(y * (GX + 1) + GX);
+  for (let x = GX - 1; x >= 0; x--) rim.push(GY * (GX + 1) + x); for (let y = GY - 1; y > 0; y--) rim.push(y * (GX + 1));
+  VAO.rim = vao(g, 2, new Uint16Array(rim));
+  const c = [-.5, .5], e = [];
+  for (const a of c) for (const b of c) { e.push(-.5, a, b, .5, a, b); e.push(a, -.5, b, a, .5, b); e.push(a, b, -.5, a, b, .5); }
+  VAO.box = vao(new Float32Array(e), 3);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  TEX.map = gl.createTexture(); TEX.slots = gl.createTexture();
+}
+const TEX = { ring: null, prox: null, slots: null, map: null };
+const linear = target => { for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(target, k, v); };
+function allocArray(old, W, H, n, unit) {
+  if (old) gl.deleteTexture(old);
+  while (gl.getError() !== gl.NO_ERROR) {}
+  const tx = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D_ARRAY, tx);
+  gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, W, H, n); linear(gl.TEXTURE_2D_ARRAY);
+  if (gl.getError() !== gl.NO_ERROR) { gl.deleteTexture(tx); return null; }
+  return tx;
+}
+const RES = [[1, 'Full'], [.5, 'Half'], [.25, 'Quarter']];
+function ringSize(sc) { return [Math.max(16, Math.round(clip.W * sc / 2) * 2), Math.max(16, Math.round(clip.H * sc / 2) * 2)]; }
+function setRes(sc, keepPreview) {                     // playback resolution, as in After Effects: smaller frames, more of them, faster to decode
+  S.pres = sc; showRes(); if (!clip) return;
+  const c = clip, [rw, rh] = ringSize(sc), prox = c.PN * c.PW * c.PH * 4;
+  let K = clamp(Math.floor((BUDGET - prox) / (rw * rh * 4)), 2, Math.min(LAYERS(), c.N));
+  for (;;) {
+    TEX.ring = allocArray(TEX.ring, 1, 1, 1, 0); TEX.ring = allocArray(TEX.ring, rw, rh, K, 0);
+    if (TEX.ring || K <= 2) break; K = Math.max(2, Math.floor(K * .6));
+  }
+  c.RW = rw; c.RH = rh; c.K = K; R.K = K; R.slot = new Int32Array(K); R.last = new Float64Array(K); resetRing(1);
+  if (!keepPreview) clearRam();
+  dirty = true; cacheT = 0;
+}
+function showRes() { const r = RES.find(x => x[0] === S.pres) || RES[0]; $('res').textContent = r[1]; $('res').title = `Playback resolution: ${r[1].toLowerCase()} (exports are always full size). Click to change.`; }
+function freeGPU() { if (TEX.ring) gl.deleteTexture(TEX.ring); if (TEX.prox) gl.deleteTexture(TEX.prox); TEX.ring = TEX.prox = null; }
+function putLayer(tx, unit, i, W, H, el) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D_ARRAY, tx); gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, i, W, H, 1, gl.RGBA, gl.UNSIGNED_BYTE, el); }
+
+/* ---------------- colours ---------------- */
+const C = {};
+function rgb(str) { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = str; c.fillRect(0, 0, 1, 1); return [...c.getImageData(0, 0, 1, 1).data.slice(0, 3)].map(v => v / 255); }
+function readColors() { const cs = getComputedStyle(document.documentElement); for (const k of ['bg', 'ink', 'mute', 'line']) C[k] = rgb(cs.getPropertyValue('--' + k).trim()); dirty = true; }
+
+/* ---------------- time map ----------------
+   The map is built from layers, bottom to top: one base (a preset), then strokes, erase strokes, words and images.
+   Each layer keeps its shape, its own time and its own blend mode, so any of them can be changed, moved or removed later.
+   smap holds the result in seconds (+ past, − future); rmap holds how strongly each pixel ripples. */
+const PRESETS = {
+  flat: () => 0,
+  tilt: u => 1 - 2 * u,
+  fall: (u, v) => 1 - 2 * v,
+  radial: (u, v, a) => Math.min(1, Math.hypot((u - .5) * a, v - .5) / Math.hypot(.5 * a, .5)),
+  tunnel: (u, v, a) => 1 - 2 * Math.min(1, Math.hypot((u - .5) * a, v - .5) / Math.hypot(.5 * a, .5)),
+};
+const PKEYS = Object.keys(PRESETS);
+const FONTS = [['Geist', '800'], ['Bricolage Grotesque', '800'], ['Instrument Serif', '400'], ['Geist Mono', '500']];
+let LY = [], sel = new Set(), nextId = 1, live = null, below = null, counts = {};
+let smap = null, rmap = null, MW = 0, MH = 0, mapDirty = true, mx = 1e-3, mmin = 0, mmax = 0, ripMax = 0, map16 = null;
+function mkLayer(kind, o) {
+  const key = kind === 'stroke' && o.erase ? 'erase' : kind; counts[key] = (counts[key] || 0) + 1;
+  return Object.assign({ id: nextId++, kind, n: counts[key], vis: true, time: -.5, blend: 'feather', amt: .3, dx: 0, dy: 0 }, o);
+}
+const byId = id => LY.find(l => l.id === id);
+const selected = () => [];
+const touch = l => { l._p = null; mapDirty = true; };
+const hasTime = l => !(l.kind === 'stroke' && l.erase) && l.kind !== 'image';
+function layerName(l) {
+  if (l.kind === 'base') return `Base · ${l.preset[0].toUpperCase() + l.preset.slice(1)}`;
+  if (l.kind === 'stroke') return `${l.erase ? 'Erase' : 'Stroke'} ${l.n}`;
+  if (l.kind === 'type') return `“${l.text}”`;
+  return l.name;
+}
+function presetName(p) { return p[0].toUpperCase() + p.slice(1); }
+
+// --- rasterising: each layer becomes coverage (0…1) and, where it varies, a value per pixel
+function frameFill(fn) {
+  const cov = new Float32Array(MW * MH).fill(1), val = new Float32Array(MW * MH);
+  for (let y = 0, i = 0; y < MH; y++) for (let x = 0; x < MW; x++, i++) val[i] = fn(x, y, i);
+  return { x0: 0, y0: 0, w: MW, h: MH, cov, val, full: true };
+}
+function levelOf(v, L) { const t = clamp((v - L.b) / Math.max(1e-4, L.w - L.b), 0, 1); return Math.pow(t, Math.log(.5) / Math.log(clamp(L.m, .01, .99))); }
+function greyAt(l) {                                    // the image's greys at the current map size
+  if (l.gw === MW && l.gh === MH) return l.g;
+  if (l._g && l._gw === MW && l._gh === MH) return l._g;
+  const g = new Float32Array(MW * MH);
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+    const sx = (x + .5) / MW * l.gw - .5, sy = (y + .5) / MH * l.gh - .5, x0 = clamp(Math.floor(sx), 0, l.gw - 1), y0 = clamp(Math.floor(sy), 0, l.gh - 1);
+    const x1 = Math.min(l.gw - 1, x0 + 1), y1 = Math.min(l.gh - 1, y0 + 1), ax = clamp(sx - x0, 0, 1), ay = clamp(sy - y0, 0, 1);
+    g[y * MW + x] = (l.g[y0 * l.gw + x0] * (1 - ax) + l.g[y0 * l.gw + x1] * ax) * (1 - ay) + (l.g[y1 * l.gw + x0] * (1 - ax) + l.g[y1 * l.gw + x1] * ax) * ay;
+  }
+  l._g = g; l._gw = MW; l._gh = MH; return g;
+}
+function dabs(pts, onDab) { for (let k = 0; k < pts.length; k += 4) onDab(pts[k] * MW, pts[k + 1] * MH, Math.max(.75, pts[k + 2] * MW), pts[k + 3]); }
+function strokeRaster(l) {
+  let x0 = MW, y0 = MH, x1 = 0, y1 = 0;
+  dabs(l.pts, (cx, cy, r) => { x0 = Math.min(x0, Math.floor(cx - r - 1)); y0 = Math.min(y0, Math.floor(cy - r - 1)); x1 = Math.max(x1, Math.ceil(cx + r + 1)); y1 = Math.max(y1, Math.ceil(cy + r + 1)); });
+  x0 = clamp(x0, 0, MW); y0 = clamp(y0, 0, MH); x1 = clamp(x1, 0, MW); y1 = clamp(y1, 0, MH);
+  const w = Math.max(0, x1 - x0), h = Math.max(0, y1 - y0), cov = new Float32Array(w * h), val = l.pressure && !l.erase ? new Float32Array(w * h) : null;
+  dabs(l.pts, (cx, cy, r, p) => stamp(cov, val, x0, y0, w, h, cx, cy, r, -l.time * p));
+  return { x0, y0, w, h, cov, val, full: false };
+}
+function stamp(cov, val, x0, y0, w, h, cx, cy, r, v) {
+  const ax = Math.max(x0, Math.floor(cx - r - 1)), bx = Math.min(x0 + w, Math.ceil(cx + r + 1)), ay = Math.max(y0, Math.floor(cy - r - 1)), by = Math.min(y0 + h, Math.ceil(cy + r + 1));
+  for (let y = ay; y < by; y++) for (let x = ax; x < bx; x++) {
+    const c = clamp(r - Math.hypot(x + .5 - cx, y + .5 - cy) + .5, 0, 1); if (c <= 0) continue;
+    const i = (y - y0) * w + (x - x0);
+    if (c > cov[i]) { cov[i] = c; if (val) val[i] = v; }
+  }
+}
+const tcan = document.createElement('canvas'), tctx = tcan.getContext('2d', { willReadFrequently: true });
+function typeRaster(l) {
+  tcan.width = MW; tcan.height = MH; const [fam, wt] = FONTS[l.font] || FONTS[0];
+  tctx.clearRect(0, 0, MW, MH); tctx.fillStyle = '#fff'; tctx.textAlign = 'center'; tctx.textBaseline = 'alphabetic';
+  const px = Math.max(4, l.size * MH); tctx.font = `${wt} ${px}px "${fam}", "Helvetica Neue", Arial, sans-serif`;
+  const m = tctx.measureText(l.text), asc = m.actualBoundingBoxAscent || px * .72, desc = m.actualBoundingBoxDescent || 0;
+  const cx = l.x * MW, cy = l.y * MH + (asc - desc) / 2; tctx.fillText(l.text, cx, cy);
+  const x0 = clamp(Math.floor(cx - m.width / 2 - 2), 0, MW), x1 = clamp(Math.ceil(cx + m.width / 2 + 2), 0, MW);
+  const y0 = clamp(Math.floor(cy - asc - 2), 0, MH), y1 = clamp(Math.ceil(cy + desc + 2), 0, MH), w = x1 - x0, h = y1 - y0;
+  const cov = new Float32Array(Math.max(0, w * h));
+  if (w > 0 && h > 0) { const d = tctx.getImageData(x0, y0, w, h).data; for (let i = 0; i < cov.length; i++) cov[i] = d[i * 4 + 3] / 255; }
+  return { x0, y0, w, h, cov, val: null, full: false };
+}
+function raster(l) {
+  if (live && live.layer === l) return liveCrop();
+  if (l.kind === 'base') { const f = PRESETS[l.preset], a = clip.W / clip.H, k = -l.time; return frameFill((x, y) => clamp(f(x / (MW - 1), y / (MH - 1), a), -1, 1) * k); }
+  if (l.kind === 'image') { const g = greyAt(l), L = l.lev; return frameFill((x, y, i) => -(L.d + (L.l - L.d) * levelOf(g[i], L))); }
+  if (l.kind === 'type') return typeRaster(l);
+  return strokeRaster(l);
+}
+// --- blend: Feather blurs the layer's own edges; Ripple keeps them and marks them to move like water
+function box1(src, dst, w, h, r, horiz, cLo, cHi) {
+  const n = 2 * r + 1, len = horiz ? w : h, lines = horiz ? h : w, step = horiz ? 1 : w;
+  for (let L = 0; L < lines; L++) {
+    const b = horiz ? L * w : L, lo = cLo ? src[b] : 0, hi = cHi ? src[b + (len - 1) * step] : 0;
+    const at = k => k < 0 ? lo : k >= len ? hi : src[b + k * step];
+    let s = 0; for (let k = -r; k <= r; k++) s += at(k);
+    for (let k = 0; k < len; k++) { dst[b + k * step] = s / n; s += at(k + r + 1) - at(k - r); }
+  }
+}
+function blur2(a, w, h, r, e) { const t = new Float32Array(a.length); for (let p = 0; p < 2; p++) { box1(a, t, w, h, r, true, e.l, e.r); box1(t, a, w, h, r, false, e.t, e.b); } }
+const blurR = l => l.blend === 'feather' ? Math.round(l.amt * .1 * MW) : l.blend === 'ripple' ? 1 : 0;
+function proc(l) {
+  if (l._p) return l._p;
+  const raw = raster(l), r = blurR(l); let out = raw;
+  if (r > 0 && raw.w > 0 && raw.h > 0) {
+    let x0 = raw.x0, y0 = raw.y0, w = raw.w, h = raw.h, cov, pv;
+    if (raw.full) { cov = raw.cov.slice(); pv = raw.val.slice(); }
+    else {
+      const nx0 = Math.max(0, x0 - r * 2), ny0 = Math.max(0, y0 - r * 2), nx1 = Math.min(MW, x0 + w + r * 2), ny1 = Math.min(MH, y0 + h + r * 2), nw = nx1 - nx0, nh = ny1 - ny0;
+      cov = new Float32Array(nw * nh); pv = raw.val ? new Float32Array(nw * nh) : null;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x, j = (y + y0 - ny0) * nw + (x + x0 - nx0); cov[j] = raw.cov[i]; if (pv) pv[j] = raw.val[i] * raw.cov[i]; }
+      x0 = nx0; y0 = ny0; w = nw; h = nh;
+    }
+    const e = { l: x0 === 0, r: x0 + w === MW, t: y0 === 0, b: y0 + h === MH };
+    blur2(cov, w, h, r, e);
+    if (pv) { blur2(pv, w, h, r, e); if (!raw.full) for (let i = 0; i < pv.length; i++) pv[i] = cov[i] > 1e-4 ? pv[i] / cov[i] : 0; }
+    out = { x0, y0, w, h, cov, val: pv, full: raw.full };
+  }
+  if (!(live && live.layer === l)) l._p = out;
+  return out;
+}
+function blendIn(l, S1, R1) {
+  const p = proc(l), ox = Math.round(l.dx * MW), oy = Math.round(l.dy * MH), rp = l.blend === 'ripple' ? l.amt : 0, k = l.kind === 'stroke' && l.erase ? 0 : -l.time;
+  for (let y = 0; y < p.h; y++) {
+    const Y = y + p.y0 + oy; if (Y < 0 || Y >= MH) continue;
+    for (let x = 0; x < p.w; x++) {
+      const X = x + p.x0 + ox; if (X < 0 || X >= MW) continue;
+      const i = y * p.w + x, c = p.cov[i]; if (c <= 0) continue;
+      const j = Y * MW + X, v = p.val ? p.val[i] : k;
+      S1[j] += (v - S1[j]) * c; R1[j] += (rp - R1[j]) * c;
+    }
+  }
+}
+function updateMap() {
+  if (live && below) { smap.set(below.s); rmap.set(below.r); blendIn(live.layer, smap, rmap); }   // only the stroke being painted changes
+  else { smap.fill(0); rmap.fill(0); for (const l of LY) if (l.vis) blendIn(l, smap, rmap); }
+  mmin = 0; mmax = 0; ripMax = 0;
+  for (let i = 0; i < smap.length; i++) { const v = smap[i]; if (v < mmin) mmin = v; if (v > mmax) mmax = v; if (rmap[i] > ripMax) ripMax = rmap[i]; }
+  mx = Math.max(-mmin, mmax, 1e-3);
+  for (let i = 0; i < smap.length; i++) { map16[i * 2] = half(smap[i]); map16[i * 2 + 1] = half(rmap[i]); }
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, TEX.map);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16F, MW, MH, 0, gl.RG, gl.HALF_FLOAT, map16); linear(gl.TEXTURE_2D);
+  const mv = $('mapview'); if (mv.width !== MW) { mv.width = MW; mv.height = MH; }
+  const c = mv.getContext('2d'), d = c.createImageData(MW, MH);
+  for (let i = 0, q = 0; i < smap.length; i++, q += 4) { const g = (.5 - smap[i] / mx * .5) * 255; d.data[q] = d.data[q + 1] = d.data[q + 2] = g; d.data[q + 3] = 255; }
+  c.putImageData(d, 0, 0);
+  const s = mx < .002 ? 0 : mx; $('lpast').textContent = '−' + fmtS(s); $('lfut').textContent = '+' + fmtS(s);
+  mapDirty = false; dirty = true; ovlDirty = true; if (clip) { mapOffsets(); clearRam(); }
+}
+const f32 = new Float32Array(1), u32 = new Uint32Array(f32.buffer);
+function half(v) { f32[0] = v; const x = u32[0], s = (x >>> 16) & 0x8000, e = ((x >>> 23) & 0xff) - 112; if (e <= 0) return s; if (e >= 31) return s | 0x7c00; return s | (e << 10) | ((x & 0x7fffff) >>> 13); }
+function drawPresetThumbs() {
+  document.querySelectorAll('#presets button').forEach(b => {
+    const cvs = b.querySelector('canvas'), c = cvs.getContext('2d'), d = c.createImageData(cvs.width, cvs.height), f = PRESETS[b.dataset.p], a = 16 / 9;
+    for (let y = 0; y < cvs.height; y++) for (let x = 0; x < cvs.width; x++) {
+      const g = (.5 - clamp(f(x / (cvs.width - 1), y / (cvs.height - 1), a), -1, 1) * .5) * 255, q = (y * cvs.width + x) * 4;
+      d.data[q] = d.data[q + 1] = d.data[q + 2] = g; d.data[q + 3] = 255;
+    }
+    c.putImageData(d, 0, 0);
+  });
+}
+
+// --- painting a stroke: new dabs go into a full-frame buffer; everything below is composited once and kept
+function liveCrop() {
+  const L0 = live, x0 = Math.max(0, L0.x0), y0 = Math.max(0, L0.y0), x1 = Math.min(MW, L0.x1), y1 = Math.min(MH, L0.y1), w = Math.max(0, x1 - x0), h = Math.max(0, y1 - y0);
+  const cov = new Float32Array(w * h), val = L0.val ? new Float32Array(w * h) : null;
+  for (let y = 0; y < h; y++) { const s0 = (y + y0) * MW + x0; cov.set(L0.cov.subarray(s0, s0 + w), y * w); if (val) val.set(L0.val.subarray(s0, s0 + w), y * w); }
+  return { x0, y0, w, h, cov, val, full: false };
+}
+function beginStroke(u, v, e, erase) {
+  checkpoint();
+  if (mapDirty) updateMap();
+  below = { s: smap.slice(), r: rmap.slice() };
+  const pen = e.pointerType === 'pen';
+  const l = mkLayer('stroke', { erase, time: erase ? 0 : S.btime, blend: S.blend, amt: S.amt, pts: [], pressure: pen && S.press === 'time' && !erase });
+  live = { layer: l, pen, cov: new Float32Array(MW * MH), val: l.pressure ? new Float32Array(MW * MH) : null, x0: MW, y0: MH, x1: 0, y1: 0 };
+  LY.push(l); sel.clear(); addDab(u, v, e);
+}
+function addDab(u, v, e) {
+  const l = live.layer, p = live.pen ? clamp(e.pressure || .5, .05, 1) : 1;
+  const r = S.bsize * (live.pen && S.press === 'size' ? p : 1), tp = l.pressure ? p : 1;
+  l.pts.push(u, v, r, tp);
+  const cx = u * MW, cy = v * MH, rad = Math.max(.75, r * MW);
+  live.x0 = Math.min(live.x0, Math.floor(cx - rad - 1)); live.y0 = Math.min(live.y0, Math.floor(cy - rad - 1));
+  live.x1 = Math.max(live.x1, Math.ceil(cx + rad + 1)); live.y1 = Math.max(live.y1, Math.ceil(cy + rad + 1));
+  stamp(live.cov, live.val, 0, 0, MW, MH, cx, cy, rad, -l.time * tp);
+  mapDirty = true;
+}
+function endStroke() {
+  if (!live) return;
+  const l = live.layer; l.pts = Float32Array.from(l.pts); live = null; below = null; l._p = null; mapDirty = true;
+  refreshLayers(); autosave();
+}
+
+// --- history: every change saves the layers as they were; the shapes themselves are shared, so it costs little
+let hist = [], redoS = [], lastEditKey = '', lastEditT = 0;
+const snap = () => ({ LY: LY.map(l => ({ ...l, lev: l.lev ? { ...l.lev } : undefined })), sel: [...sel], counts: { ...counts } });
+function checkpoint() { hist.push(snap()); if (hist.length > 150) hist.shift(); redoS = []; lastEditKey = ''; syncUndo(); }
+function edit(key, fn) {                                 // one undo step for a run of changes to the same thing (a slider drag, typing)
+  const now = performance.now();
+  if (key !== lastEditKey || now - lastEditT > 900) { hist.push(snap()); if (hist.length > 150) hist.shift(); redoS = []; }
+  lastEditKey = key; lastEditT = now; fn(); mapDirty = true; refreshLayers(); autosave(); syncUndo();
+}
+function restore(st) { LY = st.LY.map(l => ({ ...l })); sel = new Set(st.sel.filter(id => LY.some(l => l.id === id))); counts = { ...st.counts }; mapDirty = true; refreshLayers(); syncTypeUI(); autosave(); }
+function undo() { if (!hist.length) return; endStroke(); redoS.push(snap()); restore(hist.pop()); lastEditKey = ''; syncUndo(); }
+function redo() { if (!redoS.length) return; hist.push(snap()); restore(redoS.pop()); lastEditKey = ''; syncUndo(); }
+function syncUndo() { $('undo').disabled = !hist.length; $('redo').disabled = !redoS.length; }
+
+// --- picking a layer on the frame
+function hitLayer(u, v) {
+  for (let i = LY.length - 1; i >= 1; i--) {
+    const l = LY[i]; if (!l.vis || l.kind === 'image') continue;
+    const p = proc(l), x = Math.floor(u * MW) - Math.round(l.dx * MW) - p.x0, y = Math.floor(v * MH) - Math.round(l.dy * MH) - p.y0;
+    if (x >= 0 && y >= 0 && x < p.w && y < p.h && p.cov[y * p.w + x] > .3) return l;
+  }
+  return null;
+}
+const sampleMap = (u, v) => smap[clamp(Math.floor(v * MH), 0, MH - 1) * MW + clamp(Math.floor(u * MW), 0, MW - 1)];
+
+/* ---------------- clip setup ---------------- */
+function setupClip(c) {
+  clip = c;
+  clearRam(); if (S.pres !== 1) setRes(S.pres); else showRes();
+  MW = Math.max(16, Math.round(c.W / 4)); MH = Math.max(9, Math.round(c.H / 4));
+  if (MW > 640) { const k = 640 / MW; MW = 640; MH = Math.max(9, Math.round(MH * k)); }
+  smap = new Float32Array(MW * MH); rmap = new Float32Array(MW * MH); map16 = new Uint16Array(MW * MH * 2);
+  S.btime = clamp(S.btime, -maxTime(), maxTime()); S.ttime = clamp(S.ttime, -maxTime(), maxTime());
+  counts = {}; LY = [mkLayer('base', { preset: 'tilt', time: -Math.min(.5, maxTime() / 2), blend: 'none' })]; sel.clear(); hist = []; redoS = []; live = null; below = null;
+  S.lin = S.lout = null; levL = null; $('levels').hidden = true; $('imglev').disabled = true; $('restore').hidden = true;
+  mapDirty = true; refreshLayers(); syncBrushUI(); syncTypeUI(); syncUndo(); markPreset();
+  S.t = 0; resetCam(); showMeta(); layout();
+}
+function showMeta() {
+  const c = clip, fps = +c.fps.toFixed(3);
+  $('meta').textContent = `${c.name} · ${c.W}×${c.H} · ${fps} fps · ${c.N} fr`;
+  const rows = [['File', c.name], ['Size', `${c.W} × ${c.H}${c.srcW && (c.srcW !== c.W) ? ` (of ${c.srcW})` : ''}`], ['Frame rate', `${fps} fps${c.srcFps && Math.abs(c.srcFps - c.fps) > .01 ? ` (of ${+c.srcFps.toFixed(3)})` : ''}`],
+    ['Frames', c.N], ['Section', `${(c.t0 || 0).toFixed(2)}–${((c.t0 || 0) + c.N / c.fps).toFixed(2)} s`], ['Cache', fmtGB(c.bytes || 0)],
+    ['Full-size window', `${c.K} fr · ${fmtT(c.K / c.fps)}`], ['Read with', `${c.reader || '—'}${c.loadSecs ? ` · ${c.loadSecs.toFixed(1)} s` : ''}`], ['Block sheets', `${c.PW} × ${c.PH}`]];
+  $('spec').innerHTML = ''; for (const [k, v] of rows) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; $('spec').append(dt, dd); }
+}
+
+const scratch = document.createElement('canvas'), sx = scratch.getContext('2d');
+const pcv = document.createElement('canvas'), px2 = pcv.getContext('2d');
+
+// Sound: the loaded file stays open as a hidden media element. While it plays forward, its clock drives the playhead.
+function releaseAudio(c) {
+  if (c && c.audio) { c.audio.pause(); c.audio.removeAttribute('src'); c.audio.load(); URL.revokeObjectURL(c.url); c.audio = null; }
+  showSound();
+}
+async function decodeAudio(file, c) {                        // a decoded copy of the soundtrack, for the MP4 export
+  try {
+    const buf = await file.arrayBuffer(), ctx = new OfflineAudioContext(2, 1, 48000);
+    const ab = await ctx.decodeAudioData(buf); if (clip === c) c.abuf = ab;
+  } catch (e) { }
+}
+const once = (el, ev, ms = 5000) => new Promise((res, rej) => { const to = setTimeout(() => { el.removeEventListener(ev, ok); rej(new Error('timeout')); }, ms); const ok = () => { clearTimeout(to); res(); }; el.addEventListener(ev, ok, { once: true }); });
+const failed = v => new Promise((_, r) => v.addEventListener('error', () => r(new Error('decode')), { once: true }));
+async function measureFps(v) {
+  if (!hasRVFC) return 30;
+  const times = [];
+  await new Promise(res => {
+    let fin = false; const done = () => { if (fin) return; fin = true; v.pause(); res(); };
+    const cb = (now, m) => { times.push(m.mediaTime); if (times.length >= 12) done(); else if (!fin) v.requestVideoFrameCallback(cb); };
+    v.requestVideoFrameCallback(cb); v.play().catch(done); setTimeout(done, 3000);
+  });
+  let d = Infinity; for (let i = 1; i < times.length; i++) { const x = times[i] - times[i - 1]; if (x > 1e-4 && x < d) d = x; }
+  if (!isFinite(d)) return 30; const f = 1 / d; return FPS_SNAP.reduce((a, b) => Math.abs(b - f) < Math.abs(a - f) ? b : a);
+}
+/* ---------------- frame cache ----------------
+   Every frame is kept at full size as a high-quality JPEG in memory the browser manages (Chrome moves large amounts of it to disk).
+   Workers do the compressing so reading the video isn't held up. */
+const WORKER_SRC = `let c = null, x = null;
+onmessage = async e => {
+  const { i, bmp, q } = e.data;
+  try {
+    if (!c || c.width !== bmp.width || c.height !== bmp.height) { c = new OffscreenCanvas(bmp.width, bmp.height); x = c.getContext('2d'); }
+    x.drawImage(bmp, 0, 0); bmp.close();
+    postMessage({ i, b: await c.convertToBlob({ type: 'image/jpeg', quality: q }) });
+  } catch (err) { postMessage({ i, err: String(err) }); }
+};`;
+let pool = null;
+async function getPool() {
+  if (pool) return pool;
+  pool = [];
+  try {
+    if (!('OffscreenCanvas' in window) || !('Worker' in window)) return pool;
+    const url = URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' }));
+    const n = clamp((navigator.hardwareConcurrency || 4) - 1, 2, 6), ws = [];
+    for (let k = 0; k < n; k++) ws.push(new Worker(url));
+    const c = document.createElement('canvas'); c.width = c.height = 2; const bmp = await createImageBitmap(c);
+    const ok = await new Promise(res => {
+      const to = setTimeout(() => res(false), 4000);
+      ws[0].onmessage = e => { clearTimeout(to); res(!!e.data.b); }; ws[0].onerror = () => { clearTimeout(to); res(false); };
+      ws[0].postMessage({ i: -1, bmp, q: .9 }, [bmp]);
+    });
+    if (ok) pool = ws; else ws.forEach(w => w.terminate());
+  } catch (e) { pool = []; }
+  return pool;
+}
+function encoder(c, ws) {
+  const Q = .95; let inflight = 0, fail = null, next = 0; const waiters = [];
+  const settle = () => { inflight--; const w = waiters.shift(); if (w) w(); };
+  ws.forEach(w => {
+    w.onmessage = e => { const { i, b, err } = e.data; if (i >= 0) { if (err) fail = err; else { c.cache[i] = b; c.bytes += b.size; } settle(); } };
+    w.onerror = () => { fail = 'worker'; settle(); };
+  });
+  return {
+    async add(i, bmp) {
+      if (fail) throw new Error('cache');
+      if (!ws.length) {                                 // no workers: compress here
+        scratch.width = bmp.width; scratch.height = bmp.height; sx.drawImage(bmp, 0, 0); bmp.close();
+        const b = await new Promise(r => scratch.toBlob(r, 'image/jpeg', Q)); if (!b) throw new Error('cache');
+        c.cache[i] = b; c.bytes += b.size; return;
+      }
+      while (inflight >= ws.length * 2) await new Promise(r => waiters.push(r));
+      inflight++; ws[next++ % ws.length].postMessage({ i, bmp, q: Q }, [bmp]);
+    },
+    async done() { while (inflight > 0) await new Promise(r => waiters.push(r)); if (fail) throw new Error('cache'); }
+  };
+}
+// Fast path: demux the MP4/MOV and run it through the browser's (usually hardware) video decoder start to finish,
+// instead of seeking to every frame. Returns how many frames it delivered; any problem returns early and the caller seeks for the rest.
+async function fastFrames(file, pick, W, H, onBmp) {
+  if (!('VideoDecoder' in window) || !window.MP4Box || file.size > 2.5e9 || !(/\.(mp4|m4v|mov)$/i.test(file.name) || /mp4|quicktime/.test(file.type))) return 0;
+  let dec = null, ti = 0; const q = [];
+  try {
+    const buf = await file.arrayBuffer(); buf.fileStart = 0;
+    const mp4 = MP4Box.createFile(); let info = null; const samples = [];
+    mp4.onError = () => { }; mp4.onReady = i => { info = i; };
+    mp4.appendBuffer(buf); mp4.flush();
+    const tr = info && info.videoTracks && info.videoTracks[0]; if (!tr) return 0;
+    let desc;
+    for (const en of mp4.getTrackById(tr.id).mdia.minf.stbl.stsd.entries) {
+      const box = en.avcC || en.hvcC || en.vpcC || en.av1C;
+      if (box) { const ds = new DataStream(undefined, 0, DataStream.BIG_ENDIAN); box.write(ds); desc = new Uint8Array(ds.buffer, 8); break; }
+    }
+    const config = { codec: tr.codec.startsWith('vp08') ? 'vp8' : tr.codec, codedWidth: tr.video.width, codedHeight: tr.video.height, hardwareAcceleration: 'prefer-hardware' };
+    if (desc) config.description = desc;
+    let ok = false; try { ok = (await VideoDecoder.isConfigSupported(config)).supported; if (!ok) { delete config.hardwareAcceleration; ok = (await VideoDecoder.isConfigSupported(config)).supported; } } catch (e) { }
+    if (!ok) return 0;
+    mp4.onSamples = (id, u, ss) => { for (const x of ss) samples.push(x); };
+    mp4.setExtractionOptions(tr.id, null, { nbSamples: 1e9 }); mp4.start(); mp4.flush();
+    if (!samples.length) return 0;
+    let c0 = Infinity; for (const x of samples) if (x.cts < c0) c0 = x.cts;
+    const TS = tr.timescale, us = x => (x.cts - c0) / TS * 1e6;
+    const target = i => (pick.t0 + (i + .5) / pick.fps) * 1e6;
+    let si = 0; for (let i = 0; i < samples.length; i++) if (samples[i].is_sync && us(samples[i]) <= target(0)) si = i;
+    let err = null, ended = false, waiters = [];
+    const wake = () => waiters.splice(0).forEach(f => f());
+    dec = new VideoDecoder({ output: f => { q.push(f); wake(); }, error: e => { err = e; wake(); } });
+    dec.configure(config);
+    const feed = () => {
+      while (si < samples.length && dec.decodeQueueSize < 12 && q.length < 4) {
+        const x = samples[si++]; samples[si - 1] = null;
+        dec.decode(new EncodedVideoChunk({ type: x.is_sync ? 'key' : 'delta', timestamp: us(x), duration: x.duration / TS * 1e6, data: x.data }));
+      }
+      if (si >= samples.length && !ended) { ended = true; dec.flush().then(() => { ended = 'done'; wake(); }, () => { ended = 'done'; wake(); }); }
+    };
+    dec.ondequeue = feed; feed();
+    const step = 1e6 / (pick.fps || 30);
+    while (ti < pick.N) {
+      if (cancel) break; if (err) break;
+      if (!q.length) { if (ended === 'done') break; await new Promise(r => { waiters.push(r); setTimeout(r, 60); }); feed(); continue; }
+      const f = q.shift(), fEnd = f.timestamp + (f.duration || step);
+      if (fEnd <= target(ti)) { f.close(); feed(); continue; }   // earlier than the next frame we want
+      while (ti < pick.N && target(ti) < fEnd) {
+        const b = await createImageBitmap(f, (W !== f.displayWidth || H !== f.displayHeight) ? { resizeWidth: W, resizeHeight: H, resizeQuality: 'high' } : undefined);
+        await onBmp(ti, b); ti++;
+      }
+      f.close(); feed();
+    }
+  } catch (e) { }
+  q.forEach(f => { try { f.close(); } catch (e) { } });
+  try { if (dec && dec.state !== 'closed') dec.close(); } catch (e) { }
+  if (cancel) throw new Error('cancel');
+  return ti;
+}
+async function grab(v, W, H, W0, H0) {
+  if (W !== W0 || H !== H0) {
+    try { return await createImageBitmap(v, { resizeWidth: W, resizeHeight: H, resizeQuality: 'high' }); }
+    catch (e) { scratch.width = W; scratch.height = H; sx.drawImage(v, 0, 0, W, H); return await createImageBitmap(scratch); }
+  }
+  try { return await createImageBitmap(v); } catch (e) { scratch.width = W; scratch.height = H; sx.drawImage(v, 0, 0, W, H); return await createImageBitmap(scratch); }
+}
+
+/* ---------------- streaming full-size frames into graphics memory ----------------
+   The ring holds K full-size frames. It always covers the stretch of time the map reaches from the playhead.
+   If that stretch is longer than K frames, the ring holds every rs-th frame across it. */
+const SW = 4096;
+const R = { K: 0, rs: 1, slot: null, where: null, last: null, uf: null, res: new Set(), rank: new Map(), cur: [], inflight: new Map(), epoch: 0, sdirty: false, stamp: 0, ver: 0 };
+let offs = [0];                                         // the distinct times the map uses, in frames (+ past), most-used first
+const unitsOf = (c, rs) => Math.floor((c.N - 1) / rs) + 1;
+function resetRing(rs) {
+  R.rs = rs; R.slot.fill(-1); R.last.fill(0); R.where = new Int32Array(unitsOf(clip, rs)).fill(-1);
+  R.uf = new Float32Array(Math.ceil(R.where.length / SW) * SW); R.epoch++; R.inflight.clear(); R.res.clear(); R.sdirty = true; R.ver++; R.reset = true;
+}
+function initStream(c) {
+  R.K = c.K; R.slot = new Int32Array(c.K); R.last = new Float64Array(c.K); clip = c; resetRing(1);
+}
+const have = u => u >= 0 && u < R.where.length && R.where[u] >= 0;
+function slotsUpload() {
+  const n = R.where.length, h = R.uf.length / SW;
+  for (let i = 0; i < R.uf.length; i++) R.uf[i] = i < n ? R.where[i] : -1;
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, TEX.slots);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, SW, h, 0, gl.RED, gl.FLOAT, R.uf);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  R.sdirty = false; dirty = true;
+}
+let offsVer = 0;
+function mapOffsets() {                                 // after the map changes: which whole-frame times does it use? (sampled; most-used first)
+  const m = new Map(), fps = clip.fps;
+  for (let y = 0; y < MH; y += 2) for (let x = 0, i = y * MW; x < MW; x += 2, i += 2) { const o = Math.round(smap[i] * fps); m.set(o, (m.get(o) || 0) + 1); }
+  offs = [...m.entries()].sort((x, y) => y[1] - x[1]).map(e => e[0]);
+  offsVer++; R.ver++;
+}
+function needAt(t, add) {                               // every frame the picture needs at playhead t (time loops at both ends)
+  const N = clip.N, r = ripMax > 0 && !reduce ? Math.ceil(.12 * ripMax * mx * clip.fps + 1) : 0;
+  for (const o of offs) { const f = Math.floor(t - o); for (let k = f - r; k <= f + 1 + r; k++) add(((k % N) + N) % N); }
+}
+let wantKey = '', wantList = [];
+function wantUnits(t, prefetch) {
+  const [lo0, hi0] = playRange(), key = `${Math.floor(t)}|${offsVer}|${R.rs}|${R.K}|${prefetch}|${lo0}|${hi0}|${ripMax > 0}`;
+  if (key === wantKey && !R.reset) return wantList;     // the same frame and map need the same frames: nothing to work out
+  R.reset = false;
+  const c = clip, now = new Set(); needAt(t, f => now.add(f));
+  const ideal = Math.max(1, Math.ceil((now.size + 2) / Math.max(1, R.K - 2)));
+  if (ideal !== R.rs && !(drag && drag.paint)) resetRing(ideal);
+  const rs = R.rs, umax = R.where.length - 1, seen = new Set(), list = [];
+  const push = f => { if (list.length >= R.K) return; const u = Math.min(umax, Math.floor(f / rs)); if (!seen.has(u)) { seen.add(u); list.push(u); } };
+  needAt(t, push); R.cur = list.slice();
+  if (prefetch) {                                       // then what the next frames will need, so playback stays full size
+    const [lo, hi] = playRange(), span = hi - lo + 1;
+    const far = Math.min(span, Math.ceil(c.fps * 6));
+    for (let s = rs; list.length < R.K && s < far; s += rs) { let f = t + s; if (f > hi) f = lo + (f - hi - 1) % span; needAt(f, push); }
+  }
+  R.rank = new Map(list.map((u, i) => [u, i]));
+  wantKey = `${Math.floor(t)}|${offsVer}|${R.rs}|${R.K}|${prefetch}|${lo0}|${hi0}|${ripMax > 0}`; wantList = list;
+  return list;
+}
+const MAXDEC = 4;
+function freeSlot(rank) {                               // an empty slot, or the one holding the frame needed least
+  let best = -1, score = -Infinity;
+  for (let s = 0; s < R.K; s++) {
+    if (R.res.has(s)) continue;
+    const v = R.slot[s]; if (v < 0) return s;
+    const rk = R.rank.has(v) ? R.rank.get(v) : Infinity;
+    if (rk <= rank) continue;
+    const sc = rk === Infinity ? 1e15 - R.last[s] : rk;
+    if (sc > score) { score = sc; best = s; }
+  }
+  return best;
+}
+function fetchUnit(u, rank) {
+  const ep = R.epoch, c = clip, blob = c.cache[Math.min(c.N - 1, u * R.rs)];
+  if (!blob) return true;
+  const sl = freeSlot(rank); if (sl < 0) return false;
+  R.res.add(sl);
+  R.inflight.set(u, (c.RW === c.W ? createImageBitmap(blob) : createImageBitmap(blob, { resizeWidth: c.RW, resizeHeight: c.RH, resizeQuality: 'medium' })).then(bmp => {
+    if (ep !== R.epoch || clip !== c || !TEX.ring) { bmp.close(); return; }
+    R.inflight.delete(u); R.res.delete(sl);
+    const old = R.slot[sl]; if (old >= 0 && R.where[old] === sl) R.where[old] = -1;
+    putLayer(TEX.ring, 0, sl, c.RW, c.RH, bmp); bmp.close();
+    R.slot[sl] = u; R.where[u] = sl; R.last[sl] = R.stamp; R.sdirty = true; dirty = true; R.ver++;
+  }, () => { if (ep === R.epoch) { R.inflight.delete(u); R.res.delete(sl); } }));
+  return true;
+}
+function stream(t, prefetch = true) {
+  const list = wantUnits(t, prefetch); R.stamp++;
+  for (const u of list) if (have(u)) R.last[R.where[u]] = R.stamp;
+  for (let i = 0; i < list.length; i++) {
+    if (R.inflight.size >= MAXDEC) break;
+    const u = list[i]; if (have(u) || R.inflight.has(u)) continue;
+    if (!fetchUnit(u, i)) break;
+  }
+  if (R.sdirty) slotsUpload();
+  return list;
+}
+async function ensureWindow(t) {                       // exports wait until every frame they need is in at full size
+  for (;;) {
+    if (cancel) throw new Error('cancel');
+    const list = stream(t, false);
+    if (R.cur.every(have)) { if (R.sdirty) slotsUpload(); return; }
+    await Promise.race([...R.inflight.values(), new Promise(r => setTimeout(r, 25))]);
+  }
+}
+
+/* ---------------- import: choose size, frame rate and section ---------------- */
+const LAYERS = () => Math.min(2048, gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS));
+function dims(W0, H0, p) { const k = p / Math.min(W0, H0); return [Math.max(16, Math.round(W0 * k / 2) * 2), Math.max(16, Math.round(H0 * k / 2) * 2)]; }
+const fmtT = x => x.toFixed(2) + ' s', fmtGB = b => b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : Math.round(b / 1e6) + ' MB';
+function plan(W, H, N) {
+  const L = LAYERS(), ps = Math.max(1, Math.ceil(N / L)), PN = Math.ceil(N / ps);
+  const pb = Math.min(BUDGET * .3, 700e6), k = Math.min(1, 1280 / Math.max(W, H), Math.sqrt(pb / (PN * 4 * W * H)));
+  const PW = Math.max(16, Math.round(W * k / 2) * 2), PH = Math.max(16, Math.round(H * k / 2) * 2);
+  const K = clamp(Math.floor((BUDGET - PN * PW * PH * 4) / (W * H * 4)), 2, Math.min(L, N));
+  return { ps, PN, PW, PH, K };
+}
+function importDialog(I, pre) {
+  return new Promise(resolve => {
+    const short = Math.min(I.W0, I.H0), sizes = [...new Set([short, ...[2160, 1440, 1080, 720, 540].filter(p => p < short)])];
+    const fpsOf = st => I.srcFps / st;
+    const maxFrames = p => { const [w, h] = dims(I.W0, I.H0, p); return Math.min(MAXN, Math.floor(CACHE_MAX / (w * h * JPEG_BPP))); };
+    const L = () => Math.min(I.dur, maxFrames(sel.p) / fpsOf(sel.st));
+    const sel = { p: short, st: 1, in: 0, len: I.dur };
+    let usePre = false;
+    if (pre) {                                         // a project is waiting for this clip: start from the choices it was made with
+      const p = Math.min(pre.W, pre.H), st = Math.round(I.srcFps / pre.fps);
+      if (sizes.includes(p)) sel.p = p; if ([1, 2, 3].includes(st)) sel.st = st;
+      sel.in = clamp(+pre.t0 || 0, 0, I.dur); sel.len = pre.N / pre.fps; usePre = true;
+    }
+    $('isrc').textContent = `${I.name} · ${I.W0}×${I.H0} · ${+I.srcFps.toFixed(3)} fps · ${fmtT(I.dur)}`;
+    const pv = $('iprev'), track = $('itrack'), win = $('iwin');
+    pv.width = 640; pv.height = Math.round(640 * I.H0 / I.W0);
+    const nOf = () => Math.max(2, Math.floor(sel.len * fpsOf(sel.st)));
+    function build() {
+      const sz = $('isize'); sz.innerHTML = '';
+      for (const p of sizes) {
+        const [w, h] = dims(I.W0, I.H0, p), pl = plan(w, h, nOf()), b = document.createElement('button'); b.type = 'button';
+        b.innerHTML = `${p}p<small>${p === short ? 'original · ' : ''}${fmtT(pl.K / fpsOf(sel.st))} full size</small>`;
+        b.setAttribute('aria-pressed', sel.p === p); b.onclick = () => { const whole = sel.len >= L() - 1e-6; sel.p = p; if (whole) sel.len = L(); refresh(); };
+        sz.append(b);
+      }
+      const rt = $('irate'); rt.innerHTML = '';
+      for (const st of [1, 2, 3]) {
+        const r = document.createElement('button'); r.type = 'button'; r.innerHTML = `${st === 1 ? 'Every frame' : st === 2 ? 'Every 2nd' : 'Every 3rd'}<small>${+fpsOf(st).toFixed(3)} fps</small>`;
+        r.setAttribute('aria-pressed', sel.st === st); r.onclick = () => { const whole = sel.len >= L() - 1e-6; sel.st = st; if (whole) sel.len = L(); refresh(); }; rt.append(r);
+      }
+    }
+    function refresh() {
+      sel.len = Math.min(Math.max(sel.len, 2 / fpsOf(sel.st)), L()); sel.in = clamp(sel.in, 0, I.dur - sel.len);
+      build();
+      const [w, h] = dims(I.W0, I.H0, sel.p), n = nOf(), pl = plan(w, h, n);
+      win.style.left = (sel.in / I.dur * 100) + '%'; win.style.width = (sel.len / I.dur * 100) + '%';
+      win.classList.toggle('locked', L() >= I.dur && sel.len >= I.dur);
+      $('iin').textContent = fmtT(sel.in); $('iout').textContent = fmtT(sel.in + sel.len); $('ilen').textContent = fmtT(sel.len);
+      $('ifr').textContent = n; $('imem').textContent = `${w}×${h} · cache ≈ ${fmtGB(n * w * h * JPEG_BPP)}`;
+      $('ihint').textContent = L() < I.dur ? `up to ${fmtT(L())} at this size · drag to move, edges to trim` : 'drag to move · edges to trim';
+      $('inote').textContent = `Every frame is cached at ${w}×${h}. A time map reaching across ${fmtT(pl.K / fpsOf(sel.st))} or less plays every frame at full size; wider maps step through every 2nd or 3rd frame across their reach.`;
+      showIn();
+    }
+    let pvT = 0, pvBusy = false, pvWant = -1;
+    function showIn() { clearTimeout(pvT); pvT = setTimeout(async () => { pvWant = sel.in; if (pvBusy) return; pvBusy = true;
+      while (pvWant >= 0) { const t = pvWant; pvWant = -1; I.v.currentTime = Math.min(I.dur - .01, t + .01); try { await once(I.v, 'seeked', 3000); } catch (e) { } pv.getContext('2d').drawImage(I.v, 0, 0, pv.width, pv.height); }
+      pvBusy = false; }, 60); }
+    const tv = document.createElement('video'); tv.muted = true; tv.preload = 'auto'; tv.src = I.url; let open = true;
+    const thumbs = async () => {
+      const tc = $('ithumbs'), r = track.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+      tc.width = Math.round(r.width * dpr); tc.height = Math.round(r.height * dpr); const x = tc.getContext('2d');
+      const th = tc.height, tw = th * I.W0 / I.H0, n = Math.max(1, Math.ceil(tc.width / tw));
+      x.clearRect(0, 0, tc.width, tc.height);
+      try { await Promise.race([once(tv, 'loadeddata', 8000), failed(tv)]); } catch (e) { return; }
+      for (let i = 0; i < n && open; i++) { tv.currentTime = Math.min(I.dur - .01, (i + .5) * tw / tc.width * I.dur); try { await once(tv, 'seeked', 3000); } catch (e) { break; } x.drawImage(tv, i * tw, 0, tw, th); }
+      tv.removeAttribute('src'); tv.load();
+    };
+    let dragS = null;
+    const secAt = e => { const r = track.getBoundingClientRect(); return clamp((e.clientX - r.left) / r.width, 0, 1) * I.dur; };
+    track.onpointerdown = e => {
+      track.setPointerCapture(e.pointerId);
+      const kind = e.target.classList.contains('l') ? 'l' : e.target.classList.contains('r') ? 'r' : e.target === win ? 'move' : 'jump';
+      dragS = { kind, x: secAt(e), in: sel.in, len: sel.len };
+      if (kind === 'jump') { sel.in = clamp(dragS.x - sel.len / 2, 0, I.dur - sel.len); dragS = { kind: 'move', x: dragS.x, in: sel.in, len: sel.len }; refresh(); }
+    };
+    track.onpointermove = e => {
+      if (!dragS) return; const d = secAt(e) - dragS.x, minL = 2 / fpsOf(sel.st);
+      if (dragS.kind === 'move') sel.in = clamp(dragS.in + d, 0, I.dur - sel.len);
+      else if (dragS.kind === 'r') sel.len = clamp(dragS.len + d, minL, Math.min(L(), I.dur - sel.in));
+      else { const out = dragS.in + dragS.len, ni = clamp(dragS.in + d, Math.max(0, out - L()), out - minL); sel.in = ni; sel.len = out - ni; }
+      refresh();
+    };
+    track.onpointerup = track.onpointercancel = () => { dragS = null; };
+    function close(val) { open = false; $('import').hidden = true; removeEventListener('keydown', onKey, true); resolve(val); }
+    function onKey(e) { if (e.key === 'Escape') { e.stopImmediatePropagation(); close(null); } else if (e.key === 'Enter') { e.stopImmediatePropagation(); e.preventDefault(); $('igo').click(); } }
+    addEventListener('keydown', onKey, true);
+    $('icancel').onclick = () => close(null);
+    $('igo').onclick = () => { const [W, H] = dims(I.W0, I.H0, sel.p); close({ W, H, fps: fpsOf(sel.st), t0: sel.in, N: nOf() }); };
+    $('import').hidden = false; if (!usePre) sel.len = L(); refresh(); $('igo').focus(); requestAnimationFrame(thumbs);
+  });
+}
+
+async function loadVideo(file) {
+  if (busy || !file) return;
+  if (file.type && !file.type.startsWith('video/')) { flash('That file isn’t a video. Try an MP4 or WebM.'); return; }
+  busy = true; cancel = false; const wasPlaying = S.playing; S.playing = false; showPlay();
+  const url = URL.createObjectURL(file), v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+  const old = clip; let allocated = false;
+  try {
+    status('Opening video', .01);
+    await Promise.race([once(v, 'loadeddata', 15000), failed(v)]);
+    let dur = v.duration; if (!isFinite(dur)) { v.currentTime = 1e7; try { await once(v, 'seeked'); } catch (e) { } dur = v.duration; }
+    if (!isFinite(dur) || dur <= 0) throw new Error('duration');
+    status('Reading frame rate', .02);
+    const srcFps = await measureFps(v), W0 = v.videoWidth, H0 = v.videoHeight;
+    status(null);
+    const pick = await importDialog({ v, url, dur, srcFps, W0, H0, name: file.name }, pending && pending.clip && pending.clip.file === file.name ? pending.clip : null);
+    if (!pick) throw new Error('cancel');
+    const { W, H, N, fps, t0 } = pick;
+    allocated = true; cancel = false; $('empty').hidden = true; status('Preparing', 0);
+    if (old) old.cache = null;
+    let pl = plan(W, H, N);
+    for (;;) {                                           // if the card refuses, ask for less and try again
+      TEX.ring = allocArray(TEX.ring, 1, 1, 1, 0); TEX.prox = allocArray(TEX.prox, 1, 1, 1, 2);
+      TEX.prox = allocArray(TEX.prox, pl.PW, pl.PH, pl.PN, 2);
+      TEX.ring = TEX.prox ? allocArray(TEX.ring, W, H, pl.K, 0) : null;
+      if (TEX.prox && TEX.ring) break;
+      BUDGET *= .6; if (BUDGET < 60e6) throw new Error('gpu'); pl = plan(W, H, N);
+    }
+    const c = { kind: 'video', file: file.name, name: file.name.replace(/\.[^.]+$/, ''), W, H, RW: W, RH: H, N, fps, srcFps, srcW: W0, srcH: H0, t0, ...pl, cache: new Array(N), bytes: 0 };
+    initStream(c); pcv.width = c.PW; pcv.height = c.PH;
+    const enc = encoder(c, await getPool());
+    const t1 = performance.now();
+    const put = async (i, bmp, how) => {
+      if (i % c.ps === 0) { px2.drawImage(bmp, 0, 0, c.PW, c.PH); putLayer(TEX.prox, 2, i / c.ps, c.PW, c.PH, pcv); }
+      if (i < c.K) { putLayer(TEX.ring, 0, i, W, H, bmp); R.slot[i] = i; R.where[i] = i; R.ver++; }
+      await enc.add(i, bmp);
+      if (i % 2 === 0 || i === N - 1) status(`Reading and caching frame ${i + 1} of ${N}`, (i + 1) / N, `${W}×${H} · ${how} · ${fmtGB(c.bytes)} cached · Esc to stop`);
+    };
+    const got = await fastFrames(file, pick, W, H, (i, b) => put(i, b, 'hardware decoder'));   // fast path; 0 if this file or browser can't use it
+    c.reader = got ? 'hardware decoder' : 'seeking';
+    for (let i = got; i < N; i++) {                         // the slow path, or whatever the fast path didn't reach
+      if (cancel) throw new Error('cancel');
+      v.currentTime = Math.min(dur - .001, t0 + (i + .5) / fps);
+      try { await once(v, 'seeked', 5000); } catch (e) { }
+      await put(i, await grab(v, W, H, W0, H0), 'seeking');
+    }
+    c.loadSecs = (performance.now() - t1) / 1000;
+    status('Finishing the cache', 1); await enc.done();
+    releaseAudio(old);
+    v.pause(); v.currentTime = c.t0; v.muted = !S.sound; c.audio = v; c.url = url; decodeAudio(file, c);
+    setupClip(c); slotsUpload(); status(null); showSound(); showEmpty();
+    if (pending) { const pj = pending; pending = null; applyProject(pj, `Opened ${pj.name}`); } else offerRestore();
+    setTimeout(() => showHint(0), 900);
+    S.playing = !reduce; showPlay();
+  } catch (e) {
+    status(null);
+    if (e.message !== 'cancel') flash(e.message === 'gpu' ? 'This device’s graphics memory is full. Try a smaller size.' : e.message === 'cache' ? 'Couldn’t cache the frames. Try a smaller size or a shorter section.' : 'Couldn’t read that video. MP4 (H.264) or WebM works best.');
+    if (allocated) { releaseAudio(old); if (clip) clip.cache = null; clip = null; freeGPU(); } else clip = old;
+    S.playing = clip ? wasPlaying : false; showPlay(); showEmpty(); if (clip) layout();
+  } finally {
+    if (!clip || clip.audio !== v) { v.removeAttribute('src'); v.load(); URL.revokeObjectURL(url); }
+    busy = false; dirty = true;
+  }
+}
+
+/* ---------------- matrices ---------------- */
+function persp(fovy, a, n, f) { const t = 1 / Math.tan(fovy / 2), nf = 1 / (n - f); return [t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) * nf, -1, 0, 0, 2 * f * n * nf, 0]; }
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], norm = a => { const l = Math.hypot(...a) || 1; return a.map(v => v / l); };
+function lookAt(e, c, up) { const z = norm(sub(e, c)), x = norm(cross(up, z)), y = cross(z, x); return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -dot(x, e), -dot(y, e), -dot(z, e), 1]; }
+function mul(a, b) { const o = new Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
+const W2 = () => 2 * clip.W / clip.H;
+function resetCam() { cam.yaw = .745; cam.pitch = .33; cam.dist = Math.max(W2(), S.depth, 2) * 2.15 + 1.2; dirty = true; }
+function eye() { return [cam.dist * Math.cos(cam.pitch) * Math.sin(cam.yaw), cam.dist * Math.sin(cam.pitch), cam.dist * Math.cos(cam.pitch) * Math.cos(cam.yaw)]; }
+
+/* ---------------- drawing ---------------- */
+function shared(p) {
+  const c = clip; gl.useProgram(p);
+  gl.uniform1f(p.u('t'), S.t); gl.uniform1f(p.u('fps'), c.fps); gl.uniform1f(p.u('N'), c.N);
+  gl.uniform1f(p.u('K'), R.K); gl.uniform1f(p.u('rs'), R.rs); gl.uniform1f(p.u('ps'), c.ps); gl.uniform1f(p.u('PN'), c.PN);
+  gl.uniform1f(p.u('mx'), mx); gl.uniform1f(p.u('rip'), reduce ? 0 : 1); gl.uniform1f(p.u('cmp'), -1);
+  gl.uniform1f(p.u('now'), rnow); gl.uniform1f(p.u('aspect'), c.W / c.H); gl.uniform4fv(p.u('drops'), drops);
+}
+function bindTex() {
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D_ARRAY, TEX.ring);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, TEX.map);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D_ARRAY, TEX.prox);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, TEX.slots);
+}
+function drawFlat(mode, layer = 0, tint = S.overlay, cmpX = -1) {
+  const p = P.flat; shared(p); gl.uniform1f(p.u('cmp'), cmpX);
+  gl.uniform1f(p.u('mode'), mode); gl.uniform1f(p.u('layer'), layer); gl.uniform1f(p.u('tint'), tint ? 1 : 0);
+  gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+  gl.bindVertexArray(VAO.quad); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+// Block view is the whole clip as a fixed stack: first frame at the front, last at the back.
+// As the clip plays, the frames already played are cut away, so the front face is always the current frame,
+// bent by the time map: painted past bites in less, painted future bites in deeper.
+function relief() { const L = S.depth; return { s: L, z0: -L / 2, z1: L / 2 }; }
+function sheetList(max) { const n = clip.PN, st = Math.max(1, Math.ceil(n / max)), out = []; for (let j = 0; j < n; j += st) out.push(j); return { list: out, st, n }; }
+function drawBlock(aspect) {
+  const R2 = relief(), w2 = W2(), e = eye();
+  const mvp = mul(persp(35 * Math.PI / 180, aspect, .05, 400), lookAt(e, [0, 0, 0], [0, 1, 0]));
+  const solid = S.op >= .995;
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  const face = () => {
+    const p = P.surf; shared(p); gl.uniformMatrix4fv(p.u('mvp'), false, mvp); gl.uniform1f(p.u('s'), R2.s); gl.uniform1f(p.u('W2'), w2); gl.uniform1f(p.u('alpha'), S.op);
+    gl.depthMask(solid); gl.bindVertexArray(VAO.surf); gl.drawElements(gl.TRIANGLES, VAO.surf.count, gl.UNSIGNED_SHORT, 0);
+  };
+  const sheets = () => {
+    const p = P.sheet; shared(p); gl.uniformMatrix4fv(p.u('mvp'), false, mvp); gl.uniform1f(p.u('s'), R2.s); gl.uniform1f(p.u('W2'), w2);
+    const { list, st, n } = sheetList(140);
+    gl.uniform1f(p.u('alpha'), 1 - Math.pow(1 - S.op, st * 48 / Math.max(n, 48)));
+    gl.depthMask(false); gl.bindVertexArray(VAO.sheet);
+    const order = e[2] >= 0 ? list.slice().reverse() : list;      // far sheets first
+    for (const j of order) { gl.uniform1f(p.u('layer'), j); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+  };
+  if (e[2] >= 0 && !solid) { sheets(); face(); } else { face(); sheets(); }
+  gl.depthMask(true); gl.disable(gl.BLEND);
+  let p = P.rim; shared(p); gl.uniformMatrix4fv(p.u('mvp'), false, mvp); gl.uniform1f(p.u('s'), R2.s); gl.uniform1f(p.u('W2'), w2); gl.uniform4f(p.u('col'), ...C.ink, 1);
+  gl.bindVertexArray(VAO.rim); gl.drawElements(gl.LINE_LOOP, VAO.rim.count, gl.UNSIGNED_SHORT, 0);
+  const q = P.line; shared(q); gl.uniformMatrix4fv(q.u('mvp'), false, mvp);
+  gl.uniform3f(q.u('sz'), w2, 2, Math.max(.001, R2.z1 - R2.z0)); gl.uniform1f(q.u('zc'), (R2.z0 + R2.z1) / 2); gl.uniform4f(q.u('col'), ...C.mute, 1);
+  gl.bindVertexArray(VAO.box); gl.drawArrays(gl.LINES, 0, VAO.box.count);
+}
+let rect = { x: 0, y: 0, w: 1, h: 1 }, dpr = 1;
+function layout() {
+  dpr = Math.min(2, devicePixelRatio || 1);
+  const W = innerWidth, H = innerHeight;
+  if (!exporting) { const cw = Math.round(W * dpr), ch = Math.round(H * dpr); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; } }
+  if (!clip) return;
+  const narrow = W <= 860, side = narrow ? 16 : 316;
+  const top = narrow ? (document.querySelector('.id').getBoundingClientRect().bottom + 16) : 96;
+  const bottom = narrow ? (H - document.querySelector('.panel').getBoundingClientRect().top + 12) : 84;
+  const aw = Math.max(40, W - 2 * side), ah = Math.max(40, H - top - bottom);
+  const s = Math.min(aw / clip.W, ah / clip.H);
+  rect = { w: Math.floor(clip.W * s), h: Math.floor(clip.H * s) }; rect.x = Math.round((W - rect.w) / 2); rect.y = Math.round(top + (ah - rect.h) / 2);
+  dirty = true; ovlDirty = true;
+}
+function render() {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(...C.bg, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  if (!clip || !TEX.ring || !TEX.prox) return;
+  bindTex();
+  if (S.view === 'frame') { gl.viewport(Math.round(rect.x * dpr), Math.round((innerHeight - rect.y - rect.h) * dpr), Math.round(rect.w * dpr), Math.round(rect.h * dpr)); drawFlat(0, 0, S.overlay, S.cmp ? S.cmpX : -1); }
+  else drawBlock(cv.width / cv.height);
+}
+// Exports draw at the clip's own size, then put the canvas back.
+let exporting = false;
+function atClipSize(fn) {
+  exporting = true; const w = cv.width, h = cv.height; cv.width = clip.W; cv.height = clip.H;
+  const done = () => { cv.width = w; cv.height = h; exporting = false; dirty = true; };
+  return Promise.resolve().then(fn).finally(done);
+}
+function renderExport(view = S.view, mode = 0, layer = 0) {
+  gl.viewport(0, 0, cv.width, cv.height);
+  if (mode === 2) gl.clearColor(0, 0, 0, 0); else gl.clearColor(...C.bg, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); bindTex();
+  if (mode) drawFlat(mode, layer, false); else if (view === 'frame') drawFlat(0, 0, S.overlay); else drawBlock(clip.W / clip.H);
+}
+const toBlob = (type = 'image/png', q) => new Promise((res, rej) => cv.toBlob(b => b ? res(b) : rej(new Error('blob')), type, q));
+/* ---------------- files out ---------------- */
+async function saveFile(name, blob) {
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename: name, data: blob }); note(`Saved ${name}`); return; }
+    catch (e) {
+      const code = e && e.code;
+      if (code === 'declined') { note('Save cancelled.'); return; }
+      if (code === 'rate_limited') { note('A save is already waiting for an answer.'); return; }
+      console.warn('Time Slip: save prompt failed, falling back to a direct download', e);
+    }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000); note(`Saved ${name}`);
+}
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), out = [], cen = []; let off = 0;
+  const now = new Date(), date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate(), time = (now.getHours() << 11) | (now.getMinutes() << 5);
+  for (const f of files) {
+    const name = enc.encode(f.name), crc = crc32(f.data), n = f.data.length;
+    const l = new DataView(new ArrayBuffer(30));
+    l.setUint32(0, 0x04034b50, true); l.setUint16(4, 20, true); l.setUint16(6, 0x0800, true); l.setUint16(8, 0, true); l.setUint16(10, time, true); l.setUint16(12, date, true);
+    l.setUint32(14, crc, true); l.setUint32(18, n, true); l.setUint32(22, n, true); l.setUint16(26, name.length, true); l.setUint16(28, 0, true);
+    out.push(l, name, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true); c.setUint16(12, time, true); c.setUint16(14, date, true);
+    c.setUint32(16, crc, true); c.setUint32(20, n, true); c.setUint32(24, n, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+    cen.push(c, name); off += 30 + name.length + n;
+  }
+  const cs = cen.reduce((s, p) => s + p.byteLength, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...out, ...cen, e], { type: 'application/zip' });
+}
+function makeGLB(items) {
+  const J = { asset: { version: '2.0', generator: 'Time Slip' }, extensionsUsed: ['KHR_materials_unlit'], scene: 0, scenes: [{ nodes: [] }], nodes: [], meshes: [], materials: [], textures: [], images: [],
+    samplers: [{ magFilter: 9729, minFilter: 9729, wrapS: 33071, wrapT: 33071 }], accessors: [], bufferViews: [], buffers: [] };
+  const parts = []; let off = 0;
+  const view = (arr, target) => { const b = new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength), v = { buffer: 0, byteOffset: off, byteLength: b.byteLength }; if (target) v.target = target;
+    J.bufferViews.push(v); parts.push(b); off += b.byteLength; const pd = (4 - off % 4) % 4; if (pd) { parts.push(new Uint8Array(pd)); off += pd; } return J.bufferViews.length - 1; };
+  const acc = (arr, type, comp, count, target, mm) => { const a = { bufferView: view(arr, target), componentType: comp, count, type }; if (mm) { a.min = mm[0]; a.max = mm[1]; } J.accessors.push(a); return J.accessors.length - 1; };
+  for (const it of items) {
+    const n = it.pos.length / 3, mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) { const v = it.pos[i * 3 + k]; if (v < mn[k]) mn[k] = v; if (v > mx[k]) mx[k] = v; }
+    const attrs = { POSITION: acc(it.pos, 'VEC3', 5126, n, 34962, [mn, mx]) };
+    if (it.uv) attrs.TEXCOORD_0 = acc(it.uv, 'VEC2', 5126, n, 34962);
+    const mat = { name: it.name, pbrMetallicRoughness: { baseColorFactor: it.color || [1, 1, 1, 1], metallicFactor: 0, roughnessFactor: 1 }, doubleSided: true, extensions: { KHR_materials_unlit: {} } };
+    if (it.blend) mat.alphaMode = 'BLEND';
+    if (it.png) { J.images.push({ bufferView: view(it.png), mimeType: 'image/png' }); J.textures.push({ sampler: 0, source: J.images.length - 1 }); mat.pbrMetallicRoughness.baseColorTexture = { index: J.textures.length - 1 }; }
+    J.materials.push(mat);
+    const prim = { attributes: attrs, material: J.materials.length - 1, mode: it.mode };
+    if (it.idx) prim.indices = acc(it.idx, 'SCALAR', 5125, it.idx.length, 34963);
+    J.meshes.push({ name: it.name, primitives: [prim] }); J.nodes.push({ name: it.name, mesh: J.meshes.length - 1 }); J.scenes[0].nodes.push(J.nodes.length - 1);
+  }
+  J.buffers.push({ byteLength: off });
+  let js = new TextEncoder().encode(JSON.stringify(J)); const jp = (4 - js.length % 4) % 4;
+  if (jp) { const t = new Uint8Array(js.length + jp); t.set(js); t.fill(0x20, js.length); js = t; }
+  const total = 12 + 8 + js.length + 8 + off, out = new Uint8Array(total), dv = new DataView(out.buffer);
+  dv.setUint32(0, 0x46546C67, true); dv.setUint32(4, 2, true); dv.setUint32(8, total, true);
+  dv.setUint32(12, js.length, true); dv.setUint32(16, 0x4E4F534A, true); out.set(js, 20);
+  let p = 20 + js.length; dv.setUint32(p, off, true); dv.setUint32(p + 4, 0x004E4942, true); p += 8;
+  for (const b of parts) { out.set(b, p); p += b.length; }
+  return out;
+}
+
+/* ---------------- exports: every frame drawn from the full-size cache ---------------- */
+const base = () => `${clip.name.replace(/[^\w\-]+/g, '-').replace(/^-|-$/g, '') || 'clip'}_${S.view}`;
+const pad4 = n => String(n).padStart(4, '0');
+async function exportStill() { status('Loading full-size frames', 0); await ensureWindow(S.t); status(null); await atClipSize(async () => { renderExport(); const b = await toBlob(); await saveFile(`${base()}_${pad4(Math.floor(S.t) + 1)}.png`, b); }); }
+async function exportMap() {                        // at the original video's size, ready for After Effects' Time Displacement
+  const sm = document.createElement('canvas'); sm.width = MW; sm.height = MH;
+  const c = sm.getContext('2d'), d = c.createImageData(MW, MH);
+  for (let i = 0, q = 0; i < smap.length; i++, q += 4) { const g = Math.round((.5 - smap[i] / mx * .5) * 255); d.data[q] = d.data[q + 1] = d.data[q + 2] = g; d.data[q + 3] = 255; }
+  c.putImageData(d, 0, 0);
+  const W = clip.srcW || clip.W, H = clip.srcH || clip.H, big = document.createElement('canvas'); big.width = W; big.height = H;
+  const b = big.getContext('2d'); b.imageSmoothingEnabled = true; b.imageSmoothingQuality = 'high'; b.drawImage(sm, 0, 0, W, H);
+  const blob = await new Promise((res, rej) => big.toBlob(x => x ? res(x) : rej(new Error('blob')), 'image/png'));
+  await saveFile(`${base().replace(/_(frame|block)$/, '')}_timemap_${W}x${H}_reach-${mx.toFixed(2)}s.png`, blob);
+}
+const frameList = () => { const [a, b] = playRange(), out = []; for (let k = a; k <= b; k++) out.push(k); return out; };
+const rangeTag = () => S.lin != null || S.lout != null ? `_${pad4(playRange()[0] + 1)}-${pad4(playRange()[1] + 1)}` : '';
+async function forEachFrame(label, ts, fn, before) {
+  const t0 = S.t, playing = S.playing, rn = rnow, yaw = cam.yaw; S.playing = false; showPlay(); cancel = false;
+  try {
+    for (let k = 0; k < ts.length; k++) {
+      if (cancel) throw new Error('cancel');
+      S.t = ts[k]; rnow = k / clip.fps; if (before) before(k); await ensureWindow(S.t); renderExport(); await fn(k);
+      if (k % 2 === 0 || k === ts.length - 1) { status(`${label} ${k + 1} of ${ts.length}`, (k + 1) / ts.length, 'Esc to stop'); await new Promise(r => setTimeout(r, 0)); }
+    }
+  } finally { S.t = t0; S.playing = playing; rnow = rn; cam.yaw = yaw; showPlay(); status(null); }
+}
+async function pickCodec(W, H, fps) {
+  if (!('VideoEncoder' in window) || !window.Mp4Muxer) return null;
+  for (const codec of ['avc1.640033', 'avc1.4d0033', 'avc1.42e033', 'avc1.640028']) {
+    const cfg = { codec, width: W, height: H, bitrate: Math.round(Math.min(40e6, W * H * fps * .2)), framerate: fps };
+    try { const r = await VideoEncoder.isConfigSupported(cfg); if (r.supported) return cfg; } catch (e) { }
+  }
+  return null;
+}
+async function pickAudio(ab) {
+  if (!ab || !('AudioEncoder' in window)) return null;
+  for (const [codec, mux] of [['mp4a.40.2', 'aac'], ['opus', 'opus']]) {
+    const cfg = { codec, sampleRate: ab.sampleRate, numberOfChannels: Math.min(2, ab.numberOfChannels), bitrate: 192000 };
+    try { if ((await AudioEncoder.isConfigSupported(cfg)).supported) return { cfg, mux }; } catch (e) { }
+  }
+  return null;
+}
+async function encodeAudio(ab, A, muxer, f0 = 0, nf = clip.N) {          // the original soundtrack, unchanged, under the time-shifted picture
+  let err = null; const enc = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: e => { err = e; } });
+  enc.configure(A.cfg);
+  const ch = A.cfg.numberOfChannels, sr = ab.sampleRate, o0 = Math.round(((clip.t0 || 0) + f0 / clip.fps) * sr), total = Math.max(0, Math.min(ab.length - o0, Math.round(nf / clip.fps * sr)));
+  for (let o = 0; o < total; o += 4096) {
+    const n = Math.min(4096, total - o), data = new Float32Array(n * ch);
+    for (let c = 0; c < ch; c++) data.set(ab.getChannelData(Math.min(c, ab.numberOfChannels - 1)).subarray(o0 + o, o0 + o + n), c * n);
+    const ad = new AudioData({ format: 'f32-planar', sampleRate: sr, numberOfFrames: n, numberOfChannels: ch, timestamp: Math.round(o / sr * 1e6), data });
+    enc.encode(ad); ad.close();
+    if (enc.encodeQueueSize > 32) await new Promise(r => setTimeout(r, 2));
+  }
+  await enc.flush(); enc.close(); if (err) throw err;
+}
+async function encodeVideo(name, ts, { audio = true, before } = {}) {
+  const cfg = await pickCodec(clip.W, clip.H, clip.fps), A = cfg && audio ? await pickAudio(clip.abuf) : null;
+  await atClipSize(async () => {
+    if (cfg) {
+      const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: clip.W, height: clip.H, frameRate: clip.fps },
+        ...(A ? { audio: { codec: A.mux, numberOfChannels: A.cfg.numberOfChannels, sampleRate: A.cfg.sampleRate } } : {}), fastStart: 'in-memory' });
+      if (A) { status('Encoding sound', 0); await encodeAudio(clip.abuf, A, muxer, ts[0], ts.length); }
+      let err = null; const enc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { err = e; } });
+      enc.configure(cfg); const us = 1e6 / clip.fps, gop = Math.max(1, Math.round(clip.fps * 2));
+      await forEachFrame('Encoding frame', ts, async k => {
+        if (err) throw err;
+        const vf = new VideoFrame(cv, { timestamp: Math.round(k * us), duration: Math.round(us) }); enc.encode(vf, { keyFrame: k % gop === 0 }); vf.close();
+        while (enc.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 4));
+      }, before);
+      await enc.flush(); enc.close(); if (err) throw err; muxer.finalize();
+      await saveFile(name, new Blob([muxer.target.buffer], { type: 'video/mp4' }));
+    } else {
+      const stream2 = cv.captureStream(0), track = stream2.getVideoTracks()[0], chunks = [];
+      const rec = new MediaRecorder(stream2, { mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm', videoBitsPerSecond: 20e6 });
+      rec.ondataavailable = e => e.data.size && chunks.push(e.data); rec.start();
+      await forEachFrame('Recording frame', ts, async () => { track.requestFrame(); await new Promise(r => setTimeout(r, 1000 / clip.fps)); }, before);
+      await new Promise(r => { rec.onstop = r; rec.stop(); });
+      await saveFile(name.replace(/\.mp4$/, '.webm'), new Blob(chunks, { type: 'video/webm' }));
+    }
+  });
+}
+const exportVideo = () => encodeVideo(`${base()}${rangeTag()}.mp4`, frameList());
+async function exportOrbit() {                        // the block circles once while the clip (or loop range) plays
+  const fl = frameList(), n = Math.max(fl.length, Math.round(clip.fps * 6)), ts = Array.from({ length: n }, (_, k) => fl[k % fl.length]), yaw0 = cam.yaw, view = S.view;
+  camTo = null; S.view = 'block';
+  try { await encodeVideo(`${base().replace(/_(frame|block)$/, '')}_block-orbit${rangeTag()}.mp4`, ts, { audio: false, before: k => { cam.yaw = yaw0 + TAU * k / n; } }); }
+  finally { S.view = view; showView(); }
+}
+async function exportSeq() {
+  const files = [], ts = frameList();
+  await atClipSize(async () => {
+    await forEachFrame('Writing frame', ts, async k => { const b = await toBlob(); files.push({ name: `${base()}_${pad4(ts[k] + 1)}.png`, data: new Uint8Array(await b.arrayBuffer()) }); });
+    status('Packing', 1); await saveFile(`${base()}${rangeTag()}_frames.zip`, makeZip(files)); status(null);
+  });
+}
+async function exportGLB() {
+  const w2 = W2(), N = clip.N, items = [], R2 = relief();
+  const z = f => (.5 - f / Math.max(1, N - 1)) * R2.s;
+  status('Loading full-size frames', 0); await ensureWindow(S.t);
+  await atClipSize(async () => {
+    status('Building block', .05);
+    {                                                       // the cut surface, textured with the frame it produces
+      renderExport('frame', 0); const png = new Uint8Array(await (await toBlob()).arrayBuffer());
+      const gx = 96, gy = 54, pos = new Float32Array((gx + 1) * (gy + 1) * 3), uv = new Float32Array((gx + 1) * (gy + 1) * 2), idx = [];
+      for (let y = 0; y <= gy; y++) for (let x = 0; x <= gx; x++) {
+        const u = x / gx, v = y / gy, k = y * (gx + 1) + x, m = smap[Math.min(MH - 1, Math.round(v * (MH - 1))) * MW + Math.min(MW - 1, Math.round(u * (MW - 1)))];
+        pos.set([(u - .5) * w2, (.5 - v) * 2, z(((S.t - m * clip.fps) % N + N) % N)], k * 3); uv.set([u, v], k * 2);
+      }
+      for (let y = 0; y < gy; y++) for (let x = 0; x < gx; x++) { const a = y * (gx + 1) + x, b = a + 1, c = a + gx + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+      items.push({ name: 'cut', pos, uv, idx: new Uint32Array(idx), mode: 4, png, blend: S.op < .995, color: [1, 1, 1, S.op] });
+    }
+    const { list, st, n } = sheetList(24), K = list.length;
+    const alpha = 1 - Math.pow(1 - S.op, st * 48 / Math.max(n, 48));
+    for (let j = 0; j < K; j++) {
+      if (cancel) throw new Error('cancel');
+      const L = list[j], f = L * clip.ps;
+      renderExport('frame', 2, L); const png = new Uint8Array(await (await toBlob()).arrayBuffer()), zz = z(f);
+      items.push({ name: `sheet_${pad4(f + 1)}`, pos: new Float32Array([-w2 / 2, 1, zz, w2 / 2, 1, zz, -w2 / 2, -1, zz, w2 / 2, -1, zz]), uv: new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]),
+        idx: new Uint32Array([0, 2, 1, 1, 2, 3]), mode: 4, png, blend: true, color: [1, 1, 1, alpha] });
+      status(`Writing sheet ${j + 1} of ${K}`, (j + 1) / K, 'Esc to stop');
+    }
+    const e = [], h = .5; for (const a of [-h, h]) for (const b of [-h, h]) { e.push(-h, a, b, h, a, b, a, -h, b, a, h, b, a, b, -h, a, b, h); }
+    items.push({ name: 'bounds', pos: new Float32Array(e.map((v, k) => k % 3 === 2 ? v * (R2.z1 - R2.z0) + (R2.z0 + R2.z1) / 2 : v * [w2, 2][k % 3])), mode: 1, color: [...C.mute.map(c => Math.pow(c, 2.2)), 1] });
+    status('Packing', 1);
+    const glb = makeGLB(items), nm = base().replace(/_(frame|block)$/, '');
+    await saveFile(`${nm}_block.zip`, makeZip([{ name: `${nm}_block.glb`, data: glb }])); status(null);
+  });
+}
+const EXPORTS = { still: exportStill, video: exportVideo, seq: exportSeq, map: exportMap, glb: exportGLB, orbit: exportOrbit };
+async function runExport(kind) {
+  if (busy || !clip) return; busy = true; note('');
+  const pr = S.pres; if (pr !== 1) setRes(1, true);
+  try { await EXPORTS[kind](); }
+  catch (e) { status(null); console.error('Time Slip export', kind, e); note(e && e.message === 'cancel' ? 'Export stopped.' : `That ${kind} export failed: ${e && (e.name && e.name !== 'Error' ? e.name + ' – ' : '') + (e.message || e.code || String(e)) || 'unknown error'}`); }
+  finally { if (exporting) { exporting = false; dirty = true; } if (pr !== 1) setRes(pr, true); }
+  busy = false; dirty = true;
+}
+
+/* ---------------- empty state ---------------- */
+function showEmpty() {
+  $('empty').hidden = !!clip; $('play').disabled = $('rate').disabled = $('res').disabled = $('ram').disabled = !clip;
+  document.querySelectorAll('.exp button, #presets button, #typeset, #imgmap, #invert, #overlay, #clearmap, #psave').forEach(b => b.disabled = !clip);
+  if (!clip) { $('imglev').disabled = true; $('meta').textContent = 'No video loaded'; $('tc').innerHTML = '0000 <span>/ 0000</span>'; $('spec').innerHTML = ''; }
+  const pe = $('empty').querySelector('.note');
+  if (pending && !clip) pe.textContent = `Project “${pending.name}” is open. Load its video${pending.clip && pending.clip.file ? ` (${pending.clip.file})` : ''} and the map goes back on.`;
+  dirty = true;
+}
+
+/* ---------------- layers panel ---------------- */
+function swatch(l) {
+  if (l.kind === 'image' || l.kind === 'base') return 'linear-gradient(90deg, #000, #fff)';
+  const v = l.kind === 'stroke' && l.erase ? 0 : l.time, g = Math.round((.5 + clamp(v / Math.max(mx, Math.abs(v), .01), -1, 1) * .5) * 255);
+  return `rgb(${g},${g},${g})`;
+}
+function timeLabel(l) {
+  if (l.kind === 'stroke' && l.erase) return 'now';
+  if (l.kind === 'image') return `${signed(l.lev.d)} → ${signed(l.lev.l)}`;
+  if (l.kind === 'base') return l.preset === 'flat' ? 'now' : `± ${fmtS(Math.abs(l.time))}`;
+  return `${signed(l.time)}${l.pressure ? ' ·p' : ''}`;
+}
+const blendLabel = l => l.blend === 'none' ? 'none' : `${l.blend} ${Math.round(l.amt * 100)}`;
+function refreshLayers() { ovlDirty = true; dirty = true; }
+function syncEditor() { }
+function selectOnly(l, add) {
+  if (!l) { if (!add) sel.clear(); }
+  else if (add) { sel.has(l.id) ? sel.delete(l.id) : sel.add(l.id); }
+  else { sel.clear(); sel.add(l.id); }
+  refreshLayers(); syncTypeUI();
+  if (selected().length === 1 && selected()[0].kind === 'image') $('imglev').disabled = false;
+}
+function delSelected() {
+  const ls = selected().filter(l => l.kind !== 'base'); if (!ls.length) return;
+  checkpoint(); LY = LY.filter(l => !ls.includes(l)); sel.clear(); mapDirty = true; refreshLayers(); syncTypeUI(); autosave();
+}
+function moveSel(d) {
+  const ls = selected().filter(l => l.kind !== 'base'); if (!ls.length) return;
+  checkpoint();
+  const order = d > 0 ? [...ls].reverse() : ls;
+  for (const l of order) { const i = LY.indexOf(l), j = i + d; if (j < 1 || j >= LY.length || sel.has(LY[j].id)) continue; LY[i] = LY[j]; LY[j] = l; }
+  mapDirty = true; refreshLayers(); autosave();
+}
+function dupSel() {
+  const ls = selected().filter(l => l.kind !== 'base'); if (!ls.length) return;
+  checkpoint(); sel.clear();
+  for (const l of ls) { const { id, n, _p, _o, ...rest } = l; const c = mkLayer(l.kind, { ...rest, lev: l.lev ? { ...l.lev } : undefined, dx: l.dx + .02, dy: l.dy + .02 }); LY.push(c); sel.add(c.id); }
+  mapDirty = true; refreshLayers(); syncTypeUI(); autosave();
+}
+function baseL() { return LY[0]; }
+function applyPreset(p) {
+  if (!clip) return;
+  edit('preset', () => { const b = baseL(); b.preset = p; if (p !== 'flat' && Math.abs(b.time) < .01) b.time = -Math.max(.1, Math.abs(S.btime) || .5); touch(b); sel.clear(); sel.add(b.id); });
+  markPreset();
+}
+function markPreset() { const p = LY.length ? baseL().preset : ''; document.querySelectorAll('#presets button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === p)); }
+
+/* ---------------- type ---------------- */
+const selType = () => [...LY].reverse().find(l => l.kind === 'type') || null;
+function syncTypeUI() {
+  const t = selType();
+  $('tmode').textContent = 'Text';
+  $('typeset').textContent = t ? 'Remove' : 'Add';
+  if (t) { if (document.activeElement !== $('typetext')) $('typetext').value = t.text; $('tfont').value = t.font; S.ttime = t.time; S.tsize = t.size; }
+  $('tsize').value = Math.round(S.tsize * 100); $('tsizeout').textContent = Math.round(S.tsize * 100) + '%';
+  $('typeval').textContent = `${signed(S.ttime)} ${word(S.ttime)}`;
+  if (T.type) T.type(); markPreset();
+}
+async function fontReady(i) { const [fam, wt] = FONTS[i] || FONTS[0]; try { await document.fonts.load(`${wt} 64px "${fam}"`); } catch (e) { } }
+async function addType() {
+  if (!clip) return; const txt = $('typetext').value.trim(); if (!txt) return;
+  const font = +$('tfont').value; await fontReady(font);
+  checkpoint();
+  const l = mkLayer('type', { text: txt, font, size: S.tsize, x: .5, y: .5, time: S.ttime, blend: S.blend, amt: S.amt });
+  LY.push(l); sel.clear(); sel.add(l.id); mapDirty = true; refreshLayers(); syncTypeUI(); autosave();
+}
+function editType(fn) { const t = selType(); if (!t) return; edit('type' + t.id, () => { fn(t); touch(t); }); syncTypeUI(); }
+
+/* ---------------- image + levels ---------------- */
+let levL = null, levBefore = null;
+const selImage = () => { const ls = selected(); const s1 = ls.length === 1 && ls[0].kind === 'image' ? ls[0] : null; return s1 || [...LY].reverse().find(l => l.kind === 'image') || null; };
+function imageMap(file) {
+  if (!clip || !file) return;
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = MW; c.height = MH; const x = c.getContext('2d', { willReadFrequently: true });
+    const s = Math.max(MW / img.width, MH / img.height), w = img.width * s, h = img.height * s;
+    x.filter = 'grayscale(1)'; x.drawImage(img, (MW - w) / 2, (MH - h) / 2, w, h); URL.revokeObjectURL(url);
+    const d = x.getImageData(0, 0, MW, MH).data, g = new Float32Array(MW * MH);
+    for (let i = 0; i < g.length; i++) g[i] = d[i * 4] / 255;
+    const T0 = Math.abs(S.btime) || .5;
+    checkpoint();
+    const l = mkLayer('image', { name: file.name, g, gw: MW, gh: MH, lev: { b: 0, m: .5, w: 1, d: -T0, l: T0 }, blend: 'none', amt: .3 });
+    LY = LY.filter(x => x.kind !== 'image'); LY.push(l); mapDirty = true; refreshLayers(); $('imglev').disabled = false; autosave();
+    openLevels(true);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); flash('Couldn’t read that image.'); };
+  img.src = url;
+}
+function histOf(l) { if (l._h) return l._h; const h = new Float32Array(128); for (let i = 0; i < l.g.length; i++) h[Math.min(127, l.g[i] * 128 | 0)]++; l._h = h; return h; }
+function drawLevels() {
+  const L = levL.lev, hc = $('histc'), r = $('hist').getBoundingClientRect(), dpr2 = Math.min(2, devicePixelRatio || 1);
+  hc.width = Math.max(1, Math.round(r.width * dpr2)); hc.height = Math.max(1, Math.round(r.height * dpr2));
+  const x = hc.getContext('2d'), h = histOf(levL), mxh = Math.max(...h) || 1, bw = hc.width / h.length;
+  x.clearRect(0, 0, hc.width, hc.height); x.fillStyle = `rgb(${C.mute.map(v => v * 255).join(',')})`;
+  for (let i = 0; i < h.length; i++) { const bh = Math.sqrt(h[i] / mxh) * (hc.height - 4); x.fillRect(i * bw, hc.height - bh, Math.max(1, bw - .5), bh); }
+  const mp = L.b + (L.w - L.b) * L.m;
+  $('hb').style.left = L.b * 100 + '%'; $('hm').style.left = mp * 100 + '%'; $('hw').style.left = L.w * 100 + '%';
+  $('lbn').textContent = Math.round(L.b * 255); $('lwn').textContent = Math.round(L.w * 255);
+  $('lmn').textContent = (Math.log(.5) / Math.log(clamp(L.m, .01, .99))).toFixed(2);
+  const o = $('lout'), ox = o.getContext('2d'), od = ox.createImageData(256, 1), M = Math.max(Math.abs(L.d), Math.abs(L.l), 1e-3);
+  for (let i = 0; i < 256; i++) { const tm = L.d + (L.l - L.d) * levelOf(i / 255, L), gg = (.5 + tm / M * .5) * 255; od.data[i * 4] = od.data[i * 4 + 1] = od.data[i * 4 + 2] = gg; od.data[i * 4 + 3] = 255; }
+  ox.putImageData(od, 0, 0);
+  $('ldv').textContent = `${signed(L.d)} ${word(L.d)}`; $('llv').textContent = `${signed(L.l)} ${word(L.l)}`;
+  if (T.dark) { T.dark(); T.light(); }
+}
+function levelsChanged() { if (!levL) return; touch(levL); drawLevels(); refreshLayers(); }
+function openLevels(fresh) {
+  const l = selImage(); if (!l) return;
+  if (!fresh) checkpoint();
+  levL = l; levBefore = { ...l.lev }; sel.clear(); sel.add(l.id); refreshLayers();
+  $('lname').textContent = l.name; $('levels').hidden = false; drawLevels(); $('lok').focus();
+}
+function closeLevels(keep) {
+  if ($('levels').hidden) return;
+  if (!keep && levL && levBefore) { Object.assign(levL.lev, levBefore); touch(levL); refreshLayers(); }
+  levL = null; levBefore = null; $('levels').hidden = true; autosave();
+}
+
+/* ---------------- project files and session restore ---------------- */
+let pending = null;
+const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64 = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
+function packLayer(l) {
+  const o = { kind: l.kind, vis: l.vis, time: +l.time.toFixed(4), blend: l.blend, amt: l.amt, dx: +l.dx.toFixed(5), dy: +l.dy.toFixed(5) };
+  if (l.kind === 'base') o.preset = l.preset;
+  if (l.kind === 'stroke') { o.erase = !!l.erase; o.pressure = !!l.pressure; o.pts = Array.from(l.pts, v => +v.toFixed(5)); }
+  if (l.kind === 'type') Object.assign(o, { text: l.text, font: l.font, size: l.size, x: l.x, y: l.y });
+  if (l.kind === 'image') { const u = new Uint8Array(l.g.length); for (let i = 0; i < u.length; i++) u[i] = Math.round(l.g[i] * 255); Object.assign(o, { name: l.name, gw: l.gw, gh: l.gh, g: b64(u), lev: { ...l.lev } }); }
+  return o;
+}
+function unpackLayer(o) {
+  const x = { kind: o.kind, vis: o.vis !== false, time: +o.time || 0, blend: ['none', 'feather', 'ripple'].includes(o.blend) ? o.blend : 'feather', amt: clamp(+o.amt || 0, 0, 1), dx: +o.dx || 0, dy: +o.dy || 0 };
+  if (o.kind === 'base') x.preset = PRESETS[o.preset] ? o.preset : 'flat';
+  else if (o.kind === 'stroke') { x.erase = !!o.erase; x.pressure = !!o.pressure; x.pts = Float32Array.from(o.pts || []); }
+  else if (o.kind === 'type') Object.assign(x, { text: String(o.text || '').slice(0, 40), font: clamp(+o.font || 0, 0, FONTS.length - 1), size: clamp(+o.size || .38, .02, 1), x: +o.x || .5, y: +o.y || .5 });
+  else if (o.kind === 'image') { const u = unb64(o.g), g = new Float32Array(u.length); for (let i = 0; i < u.length; i++) g[i] = u[i] / 255; Object.assign(x, { name: String(o.name || 'image'), gw: o.gw, gh: o.gh, g, lev: { ...o.lev } }); }
+  else return null;
+  return x;
+}
+function projectData() {
+  const c = clip;
+  return { app: 'Time Slip', version: 1, saved: new Date().toISOString(),
+    clip: { file: c.file, name: c.name, srcW: c.srcW, srcH: c.srcH, srcFps: c.srcFps, W: c.W, H: c.H, fps: c.fps, t0: c.t0, N: c.N },
+    layers: LY.map(packLayer), range: [S.lin, S.lout],
+    brush: { time: S.btime, size: S.bsize, blend: S.blend, amt: S.amt, press: S.press }, block: { op: S.op, depth: S.depth } };
+}
+function applyProject(pj, why) {
+  const ls = (pj.layers || []).map(unpackLayer).filter(Boolean);
+  if (!ls.length || ls[0].kind !== 'base') ls.unshift({ kind: 'base', preset: 'flat', time: 0, blend: 'none', amt: .3, vis: true, dx: 0, dy: 0 });
+  checkpoint(); counts = {}; LY = ls.map(o => mkLayer(o.kind, o)); sel.clear();
+  if (pj.range && clip) { S.lin = pj.range[0] == null ? null : clamp(pj.range[0], 0, clip.N - 1); S.lout = pj.range[1] == null ? null : clamp(pj.range[1], 0, clip.N - 1); }
+  if (pj.brush) { S.btime = +pj.brush.time || S.btime; S.bsize = +pj.brush.size || S.bsize; setBlend(pj.brush.blend || S.blend); S.amt = clamp(+pj.brush.amt || S.amt, 0, 1); $('amt').value = Math.round(S.amt * 100); $('amtout').textContent = $('amt').value + '%'; setPress(pj.brush.press || S.press); }
+  if (pj.block) { S.op = clamp(+pj.block.op || S.op, .02, 1); S.depth = clamp(+pj.block.depth || S.depth, 1, 12); $('op').value = Math.round(S.op * 100); $('opout').textContent = $('op').value + '%'; $('depth').value = Math.round(S.depth * 10); $('depthout').textContent = S.depth.toFixed(1) + '×'; }
+  mapDirty = true; refreshLayers(); syncBrushUI(); syncTypeUI(); markPreset();
+  Promise.all(FONTS.map((f, i) => fontReady(i))).then(() => { for (const l of LY) if (l.kind === 'type') touch(l); });
+  if (why) flash(why);
+}
+async function saveProject() {
+  if (!clip) return;
+  const nm = (clip.name || 'clip').replace(/[^\w\-]+/g, '-');
+  await saveFile(`${nm}.timeslip`, new Blob([JSON.stringify(projectData())], { type: 'application/json' }));
+  flash(`Saved ${nm}.timeslip`);
+}
+async function openProject(file) {
+  if (!file) return;
+  let pj; try { pj = JSON.parse(await file.text()); } catch (e) { flash('That file isn’t a Time Slip project.'); return; }
+  if (!pj || !['Time Tool', 'Time Machine', 'Time Slip'].includes(pj.app) || !Array.isArray(pj.layers)) { flash('That file isn’t a Time Slip project.'); return; }
+  pj.name = file.name.replace(/\.timeslip$|\.timemachine$|\.timetool$|\.json$/i, '');
+  if (clip) { applyProject(pj, `Opened ${pj.name}`); if (pj.clip && pj.clip.file && pj.clip.file !== clip.file) note(`Opened onto ${clip.file}; it was made with ${pj.clip.file}.`); }
+  else { pending = pj; showEmpty(); flash(`Project open. Load ${pj.clip && pj.clip.file ? pj.clip.file : 'its video'}.`); }
+}
+const autoKey = () => clip ? `timetool:auto:${clip.file}:${clip.srcW}x${clip.srcH}` : null;
+let autoT = 0;
+function autosave() {
+  if (!clip) return; clearTimeout(autoT);
+  autoT = setTimeout(() => { try { localStorage.setItem(autoKey(), JSON.stringify(projectData())); } catch (e) { } }, 700);
+}
+function offerRestore() {
+  let pj = null; try { pj = JSON.parse(localStorage.getItem(autoKey()) || 'null'); } catch (e) { }
+  if (!pj || !Array.isArray(pj.layers) || pj.layers.length < 2) return;
+  const when = pj.saved ? new Date(pj.saved) : null;
+  $('restoretext').textContent = `Restore the map from your last session with this clip${when ? ` (${when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })})` : ''}?`;
+  $('restore').hidden = false;
+  $('rok').onclick = () => { $('restore').hidden = true; applyProject(pj, 'Restored the last session'); };
+  $('rno').onclick = () => { $('restore').hidden = true; };
+}
+
+/* ---------------- tips and shortcuts ---------------- */
+const HINTS = [
+  'Paint on the frame: that area now shows a moment from the past. Hold ⌥ Option and drag sideways to choose how far, into the past or the future.',
+  'Time loops: a stroke reaching past the start plays from the end of the clip, and one past the end plays from the start. Blend changes every stroke at once.',
+  'Press C to compare with the original, and I and O to loop a section while you paint.',
+  'Press V to see the whole clip as a block of time. Press ? for every shortcut.',
+];
+let hintI = 0;
+function showHint(i) {
+  let done = false; try { done = localStorage.getItem('timetool:hints') === 'done'; } catch (e) { }
+  if (done || i >= HINTS.length) { $('hint').hidden = true; return; }
+  hintI = i; $('hinttext').textContent = HINTS[i]; $('hintn').textContent = `${i + 1}/${HINTS.length}`; $('hnext').textContent = i === HINTS.length - 1 ? 'Done' : 'Next'; $('hint').hidden = false;
+}
+function endHints() { $('hint').hidden = true; try { localStorage.setItem('timetool:hints', 'done'); } catch (e) { } }
+function toggleKeys(on) { $('keys').hidden = on === undefined ? !$('keys').hidden : !on; if (!$('keys').hidden) $('kclose').focus(); }
+
+/* ---------------- overlay: selection outlines and the compare line ---------------- */
+const ovl = $('ovl'), octx = ovl.getContext('2d'); let ovlDirty = true;
+const mcan = document.createElement('canvas'), mctx2 = mcan.getContext('2d');
+function outlineOf(l) {
+  const p = proc(l); if (l._o && l._o.p === p) return l._o;
+  const w = Math.max(1, p.w), h = Math.max(1, p.h); mcan.width = w; mcan.height = h;
+  const d = mctx2.createImageData(w, h);
+  for (let i = 0; i < p.cov.length; i++) { const on = p.cov[i] > .5 && !(p.full); d.data[i * 4] = d.data[i * 4 + 1] = d.data[i * 4 + 2] = 255; d.data[i * 4 + 3] = on ? 255 : 0; }
+  mctx2.putImageData(d, 0, 0);
+  const o = { p, img: document.createElement('canvas') }; o.img.width = w; o.img.height = h; o.img.getContext('2d').drawImage(mcan, 0, 0);
+  l._o = o; return o;
+}
+function drawOverlay() {
+  const W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
+  if (ovl.width !== W || ovl.height !== H) { ovl.width = W; ovl.height = H; }
+  octx.setTransform(1, 0, 0, 1, 0, 0); octx.clearRect(0, 0, W, H);
+  if (!clip || S.view !== 'frame' || exporting) return;
+  octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const sx = rect.w / MW, sy = rect.h / MH;
+  for (const l of selected()) {
+    if (l.kind === 'base' || l.kind === 'image' || !l.vis) continue;
+    const o = outlineOf(l), x = rect.x + (o.p.x0 + Math.round(l.dx * MW)) * sx, y = rect.y + (o.p.y0 + Math.round(l.dy * MH)) * sy, w = o.p.w * sx, h = o.p.h * sy;
+    const tmp = ocTmp(Math.ceil(w) + 4, Math.ceil(h) + 4), t = tmp.getContext('2d');
+    t.clearRect(0, 0, tmp.width, tmp.height); t.imageSmoothingEnabled = true;
+    for (const [ax, ay] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) t.drawImage(o.img, 2 + ax * 1.2, 2 + ay * 1.2, w, h);
+    t.globalCompositeOperation = 'destination-out'; t.drawImage(o.img, 2, 2, w, h); t.globalCompositeOperation = 'source-over';
+    octx.save(); octx.beginPath(); octx.rect(rect.x, rect.y, rect.w, rect.h); octx.clip(); octx.drawImage(tmp, x - 2, y - 2); octx.restore();
+  }
+  if (S.cmp) {
+    const x = rect.x + S.cmpX * rect.w;
+    octx.fillStyle = '#fff'; octx.fillRect(Math.round(x) - .5, rect.y, 1, rect.h);
+    octx.fillRect(Math.round(x) - 4, rect.y + rect.h / 2 - 14, 8, 28);
+    octx.font = '500 10px "Geist Mono", monospace'; octx.textBaseline = 'top';
+    octx.textAlign = 'right'; octx.fillText('ORIGINAL', x - 10, rect.y + 8); octx.textAlign = 'left'; octx.fillText('TIME MAP', x + 10, rect.y + 8);
+  }
+  ovlDirty = false;
+}
+let tmpC = null; const ocTmp = (w, h) => { if (!tmpC) tmpC = document.createElement('canvas'); if (tmpC.width < w) tmpC.width = w; if (tmpC.height < h) tmpC.height = h; return tmpC; };
+
+/* ---------------- ui ---------------- */
+let flashT;
+function status(text, frac, sub = '') { $('status').hidden = text == null; if (text == null) return; $('stext').textContent = text; $('sfill').style.width = ((frac || 0) * 100) + '%'; $('ssub').textContent = sub; }
+function flash(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; t.classList.remove('out'); clearTimeout(flashT); flashT = setTimeout(() => { t.classList.add('out'); flashT = setTimeout(() => { t.hidden = true; }, 400); }, 3200); }
+function note(msg) { const n = $('expnote'); if (!n.dataset.def) n.dataset.def = n.textContent; n.textContent = msg || n.dataset.def; }
+const fmtS = s => (s >= 10 ? s.toFixed(1) : s.toFixed(2)) + ' s';
+const maxTime = () => clip ? Math.max(1 / clip.fps, (clip.N - 1) / clip.fps) : 60;
+// The brush time runs on a curve: fine steps near now, long reaches at the ends. x is −1 (furthest past) … +1 (furthest future).
+const CURVE = 4, curve = x => Math.sign(x) * maxTime() * (Math.exp(CURVE * Math.abs(x)) - 1) / (Math.exp(CURVE) - 1);
+const uncurve = v => Math.sign(v) * Math.log(1 + Math.abs(v) / maxTime() * (Math.exp(CURVE) - 1)) / CURVE;
+const word = v => Math.abs(v) < .005 ? 'now' : v < 0 ? 'past' : 'future';
+const signed = v => (Math.abs(v) < .005 ? '' : v < 0 ? '−' : '+') + fmtS(Math.abs(v));
+// A time track: the colour bar of the map with now in the middle; drag or click on it, arrow keys nudge.
+const T = {};
+function timeTrack(tr, get, set) {
+  const knob = tr.querySelector('.tknob'); let on = false;
+  const at = e => { const r = tr.getBoundingClientRect(); let v = curve(clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1)); if (Math.abs(uncurve(v)) < .015) v = 0; set(v); };
+  tr.addEventListener('pointerdown', e => { tr.setPointerCapture(e.pointerId); on = true; at(e); });
+  tr.addEventListener('pointermove', e => { if (on) at(e); });
+  tr.addEventListener('pointerup', () => { on = false; }); tr.addEventListener('pointercancel', () => { on = false; });
+  tr.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); set(curve(clamp(uncurve(get()) + (e.key === 'ArrowRight' ? .03 : -.03), -1, 1))); } });
+  return () => { const v = clamp(get(), -maxTime(), maxTime()); knob.style.left = ((uncurve(v) + 1) / 2 * 100) + '%'; tr.setAttribute('aria-valuetext', `${signed(v)} ${word(v)}`); };
+}
+function showSound() {
+  const has = !!(clip && clip.audio); $('sound').hidden = !has; $('sound').setAttribute('aria-pressed', S.sound);
+  $('soundicon').innerHTML = '<path stroke="none" d="M1 4.5h2.4L6.6 2v9L3.4 8.5H1z"/>' + (S.sound ? '<path fill="none" stroke-width="1.1" d="M8.6 4.4q1.4 2.1 0 4.2M10.4 3q2.4 3.5 0 7"/>' : '<path fill="none" stroke-width="1.1" d="M8.6 4.6l3 3.8M11.6 4.6l-3 3.8"/>');
+}
+function syncAudio(dt) {
+  const a = clip && clip.audio;
+  if (!a) return false;
+  a.muted = !S.sound;
+  if (!S.playing || !S.sound || busy || exporting || scrubbing) { if (!a.paused) a.pause(); return false; }
+  a.playbackRate = RATES[S.rateI];
+  if (a.paused) {
+    const [lo, hi] = playRange(); if (S.t < lo || S.t >= hi) S.t = lo;
+    a.currentTime = (clip.t0 || 0) + S.t / clip.fps;
+    a.play().catch(() => { S.sound = false; showSound(); });
+    return false;
+  }
+  const [lo, hi] = playRange(); let nt = (a.currentTime - (clip.t0 || 0)) * clip.fps;
+  if (a.ended || nt >= hi || nt < lo - 2) { a.currentTime = (clip.t0 || 0) + lo / clip.fps; nt = lo; }
+  if (!a.seeking) S.t = nt;
+  return true;
+}
+function showPlay() { $('playicon').innerHTML = S.playing ? '<rect x="2" y="1.5" width="2.6" height="9"/><rect x="7.4" y="1.5" width="2.6" height="9"/>' : '<path d="M2.5 1.5v9l8-4.5z"/>'; $('rate').textContent = RATES[S.rateI] + '×'; }
+function syncBrushUI() {
+  S.btime = clamp(S.btime, -maxTime(), maxTime());
+  if (document.activeElement !== $('btime')) $('btime').value = S.btime.toFixed(2);
+  $('tword').textContent = S.mode === 'erase' ? 'erase' : word(S.btime);
+  if (T.brush) T.brush();
+  $('ttrack').classList.toggle('off', S.mode !== 'brush');
+  $('tpast').textContent = `past ${fmtS(maxTime())}`; $('tfut').textContent = `${fmtS(maxTime())} future`;
+  $('bsize').value = Math.round(S.bsize * 100); $('bsizeout').textContent = Math.round(S.bsize * 100) + '%';
+  brushEl.classList.toggle('future', S.btime > 0);
+}
+function showView() {
+  $('vframe').setAttribute('aria-pressed', S.view === 'frame'); $('vblock').setAttribute('aria-pressed', S.view === 'block'); $('vcmp').setAttribute('aria-pressed', S.cmp);
+  $('vcmp').disabled = S.view !== 'frame';
+  cv.className = S.view === 'frame' ? (S.mode === 'select' ? 'pick' : 'paint') : 'orbit'; brushEl.classList.remove('on'); hud.classList.remove('on'); dirty = true; ovlDirty = true;
+}
+function setBlend(m, apply) {                           // one blend for every stroke, word and image
+  S.blend = m;
+  if (apply && clip && LY.length > 1) edit('blend', () => LY.slice(1).forEach(l => { l.blend = m; l.amt = S.amt; touch(l); }));
+  for (const k of ['none', 'feather', 'ripple']) $('m' + k).setAttribute('aria-pressed', m === k);
+  $('amtrow').hidden = $('amt').hidden = m === 'none'; $('amtlabel').textContent = m === 'ripple' ? 'Ripple' : 'Feather';
+}
+function setPress(m) { S.press = m; for (const k of ['off', 'time', 'size']) $('p' + k).setAttribute('aria-pressed', m === k); }
+function setMode(m) {
+  S.mode = m; for (const [k, id] of [['brush', 'bbrush'], ['erase', 'berase']]) $(id).setAttribute('aria-pressed', m === k);
+  syncBrushUI(); showView();
+}
+const playRange = () => clip ? [S.lin != null ? S.lin : 0, S.lout != null ? S.lout : clip.N - 1] : [0, 0];
+let lastI = -1, lastList = [], cacheVer = -1, cacheT = 0;
+/* ---------------- preview: the finished picture rendered ahead, like After Effects' RAM preview ---------------- */
+const RAM = { frames: new Map(), bytes: 0 };
+const RAM_MAX = MOBILE ? 400e6 : Math.min(4e9, (navigator.deviceMemory || 8) * .25e9);
+function clearRam() { if (!RAM.frames.size) return; for (const b of RAM.frames.values()) b.close(); RAM.frames.clear(); RAM.bytes = 0; R.ver++; $('ramcv').hidden = true; $('ram').classList.remove('on'); }
+async function ramPreview() {
+  if (busy || !clip) return;
+  if (S.view !== 'frame') setView('frame');
+  const todo = frameList().filter(f => !RAM.frames.has(f));
+  if (!todo.length) { S.t = playRange()[0]; S.playing = true; showPlay(); return; }
+  const [rw, rh] = ringSize(S.pres), per = rw * rh * 4;
+  busy = true; cancel = false; exporting = true;
+  const w = cv.width, h = cv.height, t0 = S.t, rn = rnow, cmp = S.cmp, ov = S.overlay; S.cmp = false; S.overlay = false; S.playing = false; showPlay();
+  let full = false;
+  try {
+    cv.width = rw; cv.height = rh;
+    for (let k = 0; k < todo.length; k++) {
+      if (cancel) break;
+      if (RAM.bytes + per > RAM_MAX) { full = true; break; }
+      S.t = todo[k]; rnow = todo[k] / clip.fps; await ensureWindow(S.t); renderExport('frame');
+      RAM.frames.set(todo[k], await createImageBitmap(cv)); RAM.bytes += per; R.ver++;
+      if (k % 2 === 0 || k === todo.length - 1) { status(`Rendering preview ${k + 1} of ${todo.length}`, (k + 1) / todo.length, 'Esc to stop · plays when done'); await new Promise(r => setTimeout(r, 0)); }
+    }
+  } catch (e) { if (e && e.message !== 'cancel') console.error('Time Slip preview', e); }
+  finally { cv.width = w; cv.height = h; exporting = false; busy = false; S.cmp = cmp; S.overlay = ov; S.t = t0; rnow = rn; status(null); dirty = true; cacheT = 0; }
+  $('ram').classList.toggle('on', RAM.frames.size > 0);
+  if (full) flash(`Preview memory is full: ${RAM.frames.size} frames rendered. Set a shorter loop with I and O, or a lower resolution.`);
+  if (!cancel && RAM.frames.size) { S.t = Math.min(...RAM.frames.keys()); S.playing = true; showPlay(); }
+}
+function showRam() {                                    // returns true when a rendered preview frame is on screen
+  const rc = $('ramcv'), b = S.view === 'frame' && !S.cmp && !S.overlay && !drag ? RAM.frames.get(Math.floor(S.t)) : null;
+  if (!b) { if (!rc.hidden) rc.hidden = true; return false; }
+  const W = Math.round(rect.w * dpr), H = Math.round(rect.h * dpr);
+  if (rc.width !== W || rc.height !== H) { rc.width = W; rc.height = H; }
+  Object.assign(rc.style, { left: rect.x + 'px', top: rect.y + 'px', width: rect.w + 'px', height: rect.h + 'px' });
+  const x = rc.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(b, 0, 0, W, H); rc.hidden = false; return true;
+}
+function drawCacheBar() {                               // green where playback is ready: solid = rendered preview, faint = full-size frames in memory
+  const now = performance.now(); if (now - cacheT < 400 || (R.ver === cacheVer && now - cacheT < 2000)) return;
+  cacheVer = R.ver; cacheT = now;
+  const c = clip, N = c.N, umax = R.where.length - 1, miss = new Uint8Array(N), bad = new Uint8Array(N);
+  for (let f = 0; f < N; f++) miss[f] = have(Math.min(umax, Math.floor(f / R.rs))) ? 0 : 1;
+  let m2 = new Uint8Array(N); for (let f = 0; f < N; f++) m2[f] = miss[f] | miss[(f + 1) % N];
+  const r = ripMax > 0 && !reduce ? Math.ceil(.12 * ripMax * mx * c.fps + 1) : 0;
+  if (r) { const d = new Uint8Array(N); for (let f = 0; f < N; f++) if (m2[f]) for (let k = -r; k <= r; k++) d[((f + k) % N + N) % N] = 1; m2 = d; }
+  if (m2.some(v => v)) for (const o of offs) { const sh = ((o % N) + N) % N; for (let t = 0; t < N; t++) if (m2[(t - sh + N) % N]) bad[t] = 1; }
+  const cv2 = $('scrubcache'), W = Math.min(N, 2000); if (cv2.width !== W) { cv2.width = W; cv2.height = 1; }
+  const x = cv2.getContext('2d'), d = x.createImageData(W, 1), step = N / W;
+  for (let i = 0; i < W; i++) {
+    const f = Math.floor(i * step), q = i * 4, ram = RAM.frames.has(f), ok = !bad[f];
+    if (ram || ok) { d.data[q] = 47; d.data[q + 1] = 191; d.data[q + 2] = 91; d.data[q + 3] = ram ? 255 : 90; }
+  }
+  x.putImageData(d, 0, 0);
+}
+function updateTransport() {
+  const c = clip, i = clamp(Math.floor(S.t), 0, c.N - 1), f = c.N > 1 ? S.t / (c.N - 1) : 0, n1 = Math.max(1, c.N - 1);
+  $('scrubhead').style.left = (clamp(f, 0, 1) * 100) + '%'; $('scrubfill').style.width = (clamp(f, 0, 1) * 100) + '%';
+  const lo = clamp((S.t - Math.max(0, mmax) * c.fps) / n1, 0, 1), hi = clamp((S.t + Math.max(0, -mmin) * c.fps) / n1, 0, 1);
+  $('scrubspan').style.left = lo * 100 + '%'; $('scrubspan').style.width = (hi - lo) * 100 + '%';
+  const lp = $('scrubloop'), on = S.lin != null || S.lout != null; lp.hidden = !on;
+  if (on) { const [a, b] = playRange(); lp.style.left = a / n1 * 100 + '%'; lp.style.width = Math.max(.2, (b - a) / n1 * 100) + '%'; }
+  if (i !== lastI) { lastI = i; $('tc').innerHTML = `${pad4(i + 1)} <span>/ ${pad4(c.N)} · ${(i / c.fps).toFixed(2)} s</span>`; $('scrub').setAttribute('aria-valuetext', `frame ${i + 1} of ${c.N}`); }
+  const full = R.cur.every(have), q = $('qdot'); drawCacheBar();
+  q.classList.toggle('wait', !full);
+  q.title = (!full ? 'Loading full-size frames; a smaller copy shows meanwhile' : R.rs > 1 ? `Full size, stepping every ${R.rs} frames across the map’s reach` : 'Every frame on screen is full size') + '. Green on the bar: ready to play at full size.';
+  const er = $('exprange'); if (er) er.textContent = on ? `Loop range set: video, frames and orbit export frames ${playRange()[0] + 1}–${playRange()[1] + 1}. Press X to clear it.` : 'Video and frames export the whole clip. Set a loop range with I and O to export part of it.';
+}
+const CAMS = { front: [0, 0], side: [Math.PI / 2, 0], top: [0, 1.45], three: [.745, .33] };
+function camPreset(k) { const [y, p] = CAMS[k]; let yaw = y; while (yaw - cam.yaw > Math.PI) yaw -= TAU; while (cam.yaw - yaw > Math.PI) yaw += TAU; camTo = { yaw, pitch: p }; if (S.view !== 'block') setView('block'); }
+
+let last = performance.now();
+function tick(now) {
+  const dt = Math.min(.1, (now - last) / 1000); last = now;
+  if (clip && !busy && !exporting) {
+    rnow = (now - T0) / 1000;
+    const [a, b] = playRange();
+    if (S.playing) {
+      if (!syncAudio(dt)) { S.t += RATES[S.rateI] * clip.fps * dt; if (S.t >= b || S.t < a - 1) S.t = a; }
+      dirty = true;
+    } else syncAudio(dt);
+    if (camTo) { const k = 1 - Math.pow(.001, dt); cam.yaw += (camTo.yaw - cam.yaw) * k; cam.pitch += (camTo.pitch - cam.pitch) * k; if (Math.abs(camTo.yaw - cam.yaw) + Math.abs(camTo.pitch - cam.pitch) < .002) camTo = null; dirty = true; }
+    if (mapDirty) updateMap();
+    lastList = S.playing && RAM.frames.has(Math.floor(S.t)) ? lastList : stream(S.t);
+    if (ripMax > 0 && !reduce) dirty = true;
+    if (dirty) { if (!showRam()) render(); updateTransport(); dirty = false; }
+    if (ovlDirty) drawOverlay();
+  } else if (clip && clip.audio && !clip.audio.paused) clip.audio.pause();
+  requestAnimationFrame(tick);
+}
+
+/* ---------------- input ---------------- */
+const brushEl = $('brush'), hud = $('bhud');
+let drag = null;
+const inRect = e => e.clientX >= rect.x && e.clientX <= rect.x + rect.w && e.clientY >= rect.y && e.clientY <= rect.y + rect.h;
+const uvOf = e => [(e.clientX - rect.x) / rect.w, (e.clientY - rect.y) / rect.h];
+const modeFor = e => (e.shiftKey || e.button === 2) ? 'erase' : S.mode;
+const nearCmp = e => S.cmp && S.view === 'frame' && Math.abs(e.clientX - (rect.x + S.cmpX * rect.w)) < 9 && inRect(e);
+function moveBrush(e) {
+  const pick = false;
+  if (S.view !== 'frame' || busy || (pick && !(drag && drag.adjust)) || (drag && (drag.move || drag.cmp))) {
+    brushEl.classList.remove('on'); hud.classList.remove('on');
+    if (S.view === 'frame' && clip) cv.style.cursor = drag && drag.move ? 'grabbing' : nearCmp(e) ? 'ew-resize' : pick ? (inRect(e) && hitLayer(...uvOf(e)) ? 'pointer' : 'default') : '';
+    return;
+  }
+  if (nearCmp(e) && !drag) { brushEl.classList.remove('on'); hud.classList.remove('on'); cv.style.cursor = 'ew-resize'; return; }
+  const adj = drag && drag.adjust, x = adj ? drag.cx : e.clientX, y = adj ? drag.cy : e.clientY;
+  const d = S.bsize * 2 * rect.w, m = drag && drag.paint ? drag.mode : modeFor(e);
+  brushEl.style.width = brushEl.style.height = d + 'px';
+  brushEl.style.transform = `translate(${x - d / 2}px, ${y - d / 2}px)`;
+  const on = adj || inRect(e) || !!(drag && drag.paint);
+  brushEl.classList.toggle('on', on); hud.classList.toggle('on', on);
+  brushEl.classList.toggle('future', m !== 'erase' && S.btime > 0); brushEl.classList.toggle('erase', m === 'erase');
+  hud.textContent = adj ? (drag.axis === 'y' ? `size ${Math.round(S.bsize * 100)}%` : drag.axis === 'x' ? `${signed(S.btime)} ${word(S.btime)}` : '↔ time · ↕ size · click to pick') + (drag.fine ? ' · fine' : '')
+    : m === 'erase' ? 'erase' : `${signed(S.btime)} ${word(S.btime)}${S.blend !== 'feather' ? ' · ' + S.blend : ''}`;
+  hud.style.transform = adj ? `translate(${e.clientX + 14}px, ${e.clientY + 12}px)` : `translate(${x + d / 2 + 6}px, ${y + d / 2 - 2}px)`;
+  cv.style.cursor = S.view === 'frame' && !inRect(e) && !adj ? 'default' : '';
+}
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointerdown', e => {
+  if (!clip || busy) return;
+  if (S.view === 'frame') {
+    if (!inRect(e)) return;
+    cv.setPointerCapture(e.pointerId);
+    const [u, v] = uvOf(e);
+    if (nearCmp(e)) { drag = { cmp: true }; return; }
+    if (e.altKey) {                                     // ⌥ drag: left/right sets the brush time, up/down its size; ⌥ click picks up a time
+      e.preventDefault(); drag = { adjust: true, cx: e.clientX, cy: e.clientY, axis: null, sx: e.clientX, sy: e.clientY }; rebase(e); moveBrush(e); return;
+    }
+    drag = { paint: true, mode: modeFor(e), u, v }; beginStroke(u, v, e, drag.mode === 'erase');
+    if (S.blend === 'ripple' && drag.mode !== 'erase') addDrop(u, v); moveBrush(e);
+  } else { cv.setPointerCapture(e.pointerId); camTo = null; drag = { orbit: true, x: e.clientX, y: e.clientY }; }
+});
+cv.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'touch') moveBrush(e);
+  if (!drag) return;
+  if (drag.cmp) { S.cmpX = clamp((e.clientX - rect.x) / rect.w, 0, 1); dirty = ovlDirty = true; }
+  else if (drag.adjust) {
+    if (e.shiftKey !== drag.fine) rebase(e);
+    if (!drag.axis) {                                   // lock to whichever way the drag starts, so time and size don't change together
+      const ax = Math.abs(e.clientX - drag.sx), ay = Math.abs(e.clientY - drag.sy);
+      if (Math.max(ax, ay) < 5) return; drag.axis = ax >= ay ? 'x' : 'y'; rebase(e); if (S.mode !== 'brush' && drag.axis === 'x') setMode('brush');
+    }
+    if (drag.axis === 'x') S.btime = clamp(fromPx(drag.p0 + e.clientX - drag.x), -maxTime(), maxTime());
+    else S.bsize = clamp(drag.s0 - (e.clientY - drag.y) * (drag.fine ? .2 : 1) / (2 * rect.w), .005, .6);
+    syncBrushUI(); moveBrush(e);
+  } else if (drag.move) {
+    const [u, v] = uvOf(e);
+    if (!drag.moved) { if (Math.hypot((u - drag.u) * rect.w, (v - drag.v) * rect.h) < 3) return; checkpoint(); drag.moved = true; }
+    for (const [l, dx, dy] of drag.starts) { l.dx = dx + u - drag.u; l.dy = dy + v - drag.v; }
+    mapDirty = true; ovlDirty = true;
+  } else if (drag.paint) {
+    const [u, v] = uvOf(e), du = u - drag.u, dv = v - drag.v;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    const pr = evs.length ? evs[evs.length - 1] : e;
+    const steps = Math.max(1, Math.ceil(Math.hypot(du * MW, dv * MH) / Math.max(.5, S.bsize * MW * .3)));
+    for (let i = 1; i <= steps; i++) addDab(drag.u + du * i / steps, drag.v + dv * i / steps, pr);
+    drag.u = u; drag.v = v;
+    if (S.blend === 'ripple' && drag.mode !== 'erase' && performance.now() - lastDrop > 160) addDrop(u, v);
+  } else if (drag.orbit) {
+    cam.yaw -= (e.clientX - drag.x) * .006; cam.pitch = clamp(cam.pitch + (e.clientY - drag.y) * .006, -1.45, 1.45);
+    drag.x = e.clientX; drag.y = e.clientY; dirty = true;
+  }
+});
+// ⌥ drag works like Photoshop's brush drag: steady and linear. Left/right: about one frame every 4 px (or finer for long clips),
+// with a 10 px catch at now so it's easy to land on. Up/down: the circle grows 1:1 with the pointer. Hold Shift for 5× finer.
+const DETENT = 10;
+const perPx = () => (clip ? Math.max(1 / (clip.fps * 4), maxTime() / 900) : .01) * (drag && drag.fine ? .2 : 1);
+const toPx = v => v === 0 ? 0 : Math.sign(v) * (Math.abs(v) / perPx() + DETENT);
+const fromPx = p => Math.abs(p) <= DETENT ? 0 : Math.sign(p) * (Math.abs(p) - DETENT) * perPx();
+function rebase(e) { drag.fine = e.shiftKey; drag.x = e.clientX; drag.y = e.clientY; drag.p0 = toPx(S.btime); drag.s0 = S.bsize; }
+const endDrag = e => {
+  const was = drag; drag = null; if (!was) return;
+  if (was.paint) endStroke();
+  if (was.move && was.moved) { for (const [l] of was.starts) l._o = null; refreshLayers(); autosave(); }
+  if (was.adjust && !was.axis && e && e.type === 'pointerup') {          // ⌥ click: pick up the time under the cursor
+    const [u, v] = uvOf(e), t = -sampleMap(u, v); S.btime = Math.abs(t) < .005 ? 0 : t; setMode('brush');
+    hud.textContent = `picked ${signed(S.btime)} ${word(S.btime)}`;
+  }
+  if (e) moveBrush(e);
+};
+cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('pointerleave', () => { if (!drag) { brushEl.classList.remove('on'); hud.classList.remove('on'); } });
+cv.addEventListener('wheel', e => { if (S.view !== 'block') return; e.preventDefault(); camTo = null; cam.dist = clamp(cam.dist * Math.exp(e.deltaY * .0012), 1.5, 80); dirty = true; }, { passive: false });
+
+const scrub = $('scrub'); let scrubbing = false;
+function scrubTo(e) { const r = scrub.getBoundingClientRect(); S.t = clamp((e.clientX - r.left) / r.width, 0, 1) * (clip.N - 1); dirty = true; }
+scrub.addEventListener('pointerdown', e => { if (!clip || busy) return; scrub.setPointerCapture(e.pointerId); scrubbing = true; S.playing = false; showPlay(); scrubTo(e); });
+scrub.addEventListener('pointermove', e => { if (scrubbing) scrubTo(e); });
+scrub.addEventListener('pointerup', () => { scrubbing = false; }); scrub.addEventListener('pointercancel', () => { scrubbing = false; });
+
+function step(d) { if (!clip) return; S.playing = false; showPlay(); S.t = clamp(Math.round(S.t) + d, 0, clip.N - 1); dirty = true; }
+function setView(v) { S.view = v; showView(); }
+function setLoop(which) {
+  if (!clip) return; const f = Math.round(S.t);
+  if (which === 'in') { S.lin = f; if (S.lout != null && S.lout <= f) S.lout = null; }
+  else if (which === 'out') { S.lout = f; if (S.lin != null && S.lin >= f) S.lin = null; }
+  else { S.lin = S.lout = null; }
+  dirty = true; autosave();
+}
+function setRange(id, fn, fmt) { const el = $(id); const go = () => { fn(+el.value); $(id + 'out').textContent = fmt(+el.value); }; el.addEventListener('input', go); go(); }
+
+document.querySelectorAll('.sec > .head').forEach(h => h.addEventListener('click', () => {
+  const open = h.getAttribute('aria-expanded') !== 'true'; h.setAttribute('aria-expanded', open); $(h.getAttribute('aria-controls')).hidden = !open; layout();
+}));
+$('presets').addEventListener('click', e => { const b = e.target.closest('button'); if (b && clip) applyPreset(b.dataset.p); });
+setRange('amt', v => { S.amt = v / 100; }, v => v + '%');
+setRange('op', v => { S.op = v / 100; dirty = true; }, v => v + '%');
+setRange('depth', v => { S.depth = v / 10; dirty = true; }, v => (v / 10).toFixed(1) + '×');
+for (const k of ['none', 'feather', 'ripple']) {
+  $('m' + k).addEventListener('click', () => setBlend(k, true));
+}
+$('amt').addEventListener('input', () => { if (clip && LY.length > 1) edit('amt', () => LY.slice(1).forEach(l => { l.amt = S.amt; touch(l); })); });
+for (const k of ['off', 'time', 'size']) $('p' + k).addEventListener('click', () => setPress(k));
+$('btime').addEventListener('change', e => { const v = parseFloat(e.target.value); if (isFinite(v)) { S.btime = v; setMode('brush'); } e.target.blur(); syncBrushUI(); });
+$('bsize').addEventListener('input', e => { S.bsize = clamp(+e.target.value / 100, .01, .6); syncBrushUI(); });
+$('bbrush').addEventListener('click', () => setMode('brush')); $('berase').addEventListener('click', () => setMode('erase'));
+T.brush = timeTrack($('ttrack'), () => S.btime, v => { S.btime = v; if (S.mode !== 'brush') setMode('brush'); syncBrushUI(); });
+T.type = timeTrack($('ttype'), () => S.ttime, v => { S.ttime = v; const t = selType(); if (t) editType(l => { l.time = v; }); else syncTypeUI(); });
+T.dark = timeTrack($('tdark'), () => levL ? levL.lev.d : 0, v => { if (levL) { levL.lev.d = v; levelsChanged(); } });
+T.light = timeTrack($('tlight'), () => levL ? levL.lev.l : 0, v => { if (levL) { levL.lev.l = v; levelsChanged(); } });
+$('undo').addEventListener('click', undo); $('redo').addEventListener('click', redo);
+$('clearmap').addEventListener('click', () => { if (!clip) return; checkpoint(); counts = {}; LY = [mkLayer('base', { preset: 'flat', time: 0, blend: 'none' })]; sel.clear(); mapDirty = true; refreshLayers(); markPreset(); autosave(); });
+$('overlay').addEventListener('click', e => { S.overlay = !S.overlay; e.currentTarget.setAttribute('aria-pressed', S.overlay); dirty = true; });
+$('invert').addEventListener('click', () => {
+  if (!clip) return; const ls = selected().length ? selected() : LY;
+  edit('invert' + Math.random(), () => ls.forEach(l => { if (l.kind === 'image') { [l.lev.d, l.lev.l] = [l.lev.l, l.lev.d]; } else l.time = -l.time; touch(l); }));
+});
+document.querySelectorAll('[data-cam]').forEach(b => b.addEventListener('click', () => { if (clip) camPreset(b.dataset.cam); }));
+$('vframe').addEventListener('click', () => setView('frame')); $('vblock').addEventListener('click', () => setView('block'));
+$('vcmp').addEventListener('click', () => { S.cmp = !S.cmp; showView(); });
+$('help').addEventListener('click', () => toggleKeys(true)); $('kclose').addEventListener('click', () => toggleKeys(false));
+$('keys').addEventListener('click', e => { if (e.target === $('keys')) toggleKeys(false); });
+$('hnext').addEventListener('click', () => hintI + 1 >= HINTS.length ? endHints() : showHint(hintI + 1)); $('hclose').addEventListener('click', endHints);
+$('play').addEventListener('click', () => { S.playing = !S.playing; showPlay(); });
+$('sound').addEventListener('click', () => { S.sound = !S.sound; showSound(); });
+$('rate').addEventListener('click', () => { S.rateI = (S.rateI + 1) % RATES.length; showPlay(); });
+$('res').addEventListener('click', () => { if (busy) return; const i = RES.findIndex(x => x[0] === S.pres); setRes(RES[(i + 1) % RES.length][0]); });
+$('ram').addEventListener('click', () => ramPreview());
+$('load').addEventListener('click', () => $('file').click());
+$('load2').addEventListener('click', () => $('file').click());
+$('popen').addEventListener('click', () => $('pfile').click()); $('psave').addEventListener('click', saveProject);
+$('pfile').addEventListener('change', e => { openProject(e.target.files[0]); e.target.value = ''; });
+$('typeset').addEventListener('click', () => { const t = selType(); if (t) { checkpoint(); LY = LY.filter(l => l !== t); mapDirty = true; syncTypeUI(); autosave(); } else addType(); });
+$('typetext').addEventListener('input', e => { const v = e.target.value.trim(); if (v && selType()) editType(l => { l.text = v; }); });
+$('typetext').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (!selType()) addType(); else e.target.blur(); } });
+$('tfont').addEventListener('change', async e => { const i = +e.target.value; await fontReady(i); if (selType()) editType(l => { l.font = i; }); });
+$('tsize').addEventListener('input', e => { S.tsize = +e.target.value / 100; $('tsizeout').textContent = e.target.value + '%'; if (selType()) editType(l => { l.size = S.tsize; }); });
+$('imgmap').addEventListener('click', () => $('imgfile').click());
+$('imglev').addEventListener('click', () => openLevels(false));
+$('imgfile').addEventListener('change', e => { imageMap(e.target.files[0]); e.target.value = ''; });
+$('file').addEventListener('change', e => { loadVideo(e.target.files[0]); e.target.value = ''; });
+document.querySelectorAll('.exp button[data-x]').forEach(b => b.addEventListener('click', () => runExport(b.dataset.x)));
+$('expmore').addEventListener('click', e => { const on = e.currentTarget.getAttribute('aria-expanded') !== 'true'; e.currentTarget.setAttribute('aria-expanded', on); e.currentTarget.querySelector('span').textContent = on ? '−' : '+'; document.querySelectorAll('.exp .more').forEach(b => b.hidden = !on); });
+(() => {                                               // the three markers on the Levels histogram
+  const hb = $('hist'); let which = null;
+  const pos = e => { const r = hb.getBoundingClientRect(); return clamp((e.clientX - r.left) / r.width, 0, 1); };
+  const put = v => {
+    if (!levL) return; const L = levL.lev;
+    if (which === 'b') L.b = clamp(v, 0, L.w - .01); else if (which === 'w') L.w = clamp(v, L.b + .01, 1); else L.m = clamp((v - L.b) / Math.max(1e-4, L.w - L.b), .03, .97);
+    levelsChanged();
+  };
+  hb.addEventListener('pointerdown', e => {
+    if (!levL) return; const L = levL.lev, v = pos(e), mp = L.b + (L.w - L.b) * L.m, d = { b: Math.abs(v - L.b), m: Math.abs(v - mp), w: Math.abs(v - L.w) };
+    which = Object.keys(d).reduce((a, k) => d[k] < d[a] ? k : a, 'm'); hb.setPointerCapture(e.pointerId); put(v);
+  });
+  hb.addEventListener('pointermove', e => { if (which) put(pos(e)); });
+  hb.addEventListener('pointerup', () => { which = null; }); hb.addEventListener('pointercancel', () => { which = null; });
+  $('lok').addEventListener('click', () => closeLevels(true));
+  $('lcancel').addEventListener('click', () => closeLevels(false));
+  $('lswap').addEventListener('click', () => { if (!levL) return; const L = levL.lev; [L.d, L.l] = [L.l, L.d]; levelsChanged(); });
+  $('lreset').addEventListener('click', () => { if (!levL) return; const T0 = Math.abs(S.btime) || .5; Object.assign(levL.lev, { b: 0, m: .5, w: 1, d: -T0, l: T0 }); levelsChanged(); });
+  $('levels').addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.stopPropagation(); closeLevels(false); }
+    else if (e.key === 'Enter' && !(e.target.matches && e.target.matches('button'))) { e.preventDefault(); e.stopPropagation(); closeLevels(true); }
+  });
+})();
+
+addEventListener('dragover', e => { e.preventDefault(); $('empty').classList.add('over'); });
+addEventListener('dragleave', e => { if (e.relatedTarget === null) $('empty').classList.remove('over'); });
+addEventListener('drop', e => {
+  e.preventDefault(); $('empty').classList.remove('over'); const f = [...(e.dataTransfer?.files || [])][0]; if (!f) return;
+  if (/\.(timeslip|timemachine|timetool)$/i.test(f.name)) openProject(f); else if (f.type.startsWith('image/') && clip) imageMap(f); else loadVideo(f);
+});
+addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('button, [role="slider"], input[type="range"], select, summary'); if (b && b.matches('button, [role="slider"]')) e.preventDefault(); }, true);
+addEventListener('pointerup', () => { const a = document.activeElement; if (a && a !== document.body && a.matches && a.matches('button, [role="slider"], input[type="range"]')) requestAnimationFrame(() => a.blur()); }, true);
+addEventListener('change', e => { if (e.target.matches && e.target.matches('select, input[type="range"]')) e.target.blur(); }, true);
+addEventListener('keydown', e => {
+  const t = e.target, mod = e.metaKey || e.ctrlKey, k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (!$('keys').hidden && (e.key === 'Escape' || e.key === '?')) { e.preventDefault(); toggleKeys(false); return; }
+  if (e.key === 'Escape') { cancel = true; return; }
+  if (e.key === 'Tab' && !(t.matches && t.matches('input[type="text"], input[type="number"]'))) { e.preventDefault(); return; }
+  if (e.key === 'Alt') e.preventDefault();
+  if (t.matches && t.matches('input[type="text"], input[type="number"], select')) return;
+  if (mod && k === 's') { e.preventDefault(); saveProject(); return; }
+  if (mod && k === 'o') { e.preventDefault(); $('pfile').click(); return; }
+  if (busy) return;
+  if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && k === 'y') { e.preventDefault(); redo(); return; }
+  if (mod || e.altKey) return;
+  if (e.key === '?') { toggleKeys(); return; }
+  if (k === ' ') { e.preventDefault(); S.playing = !S.playing; showPlay(); }
+  else if (k === 'ArrowRight' || k === '.') { e.preventDefault(); step(1); }
+  else if (k === 'ArrowLeft' || k === ',') { e.preventDefault(); step(-1); }
+  else if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); S.rateI = clamp(S.rateI + (k === 'ArrowUp' ? 1 : -1), 0, RATES.length - 1); showPlay(); }
+  else if (k === 'v') setView(S.view === 'frame' ? 'block' : 'frame');
+  else if (k === 'c') { if (S.view === 'frame') { S.cmp = !S.cmp; showView(); } }
+  else if (k === 'b') setMode('brush'); else if (k === 'e') setMode('erase');
+  else if (k === 'r') ramPreview();
+  else if (k === 'i') setLoop('in'); else if (k === 'o') setLoop('out'); else if (k === 'x') setLoop('clear');
+  else if (k === 'm') $('overlay').click();
+  else if (k === 's' && clip && clip.audio) $('sound').click();
+  else if (k === 'l') $('file').click();
+  else if (k === '[' || k === ']') { S.bsize = clamp(S.bsize * (k === ']' ? 1.2 : 1 / 1.2), .01, .6); syncBrushUI(); }
+  else if (k === '-' || k === '=') { S.btime = curve(clamp(uncurve(S.btime) + (k === '=' ? .05 : -.05), -1, 1)); syncBrushUI(); }
+  else if ('12345'.includes(k) && clip) applyPreset(PKEYS[+k - 1]);
+});
+
+addEventListener('resize', () => { layout(); ovlDirty = true; });
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors); } catch (e) { }
+new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+cv.addEventListener('webglcontextlost', e => { e.preventDefault(); busy = true; status('The graphics card ran out of memory. Reload the page and pick a smaller size.', 0); });
+
+async function start() {
+  if (innerWidth <= 860) for (const id of ['b-map', 'b-brush']) { const h = document.querySelector(`[aria-controls="${id}"]`); h.setAttribute('aria-expanded', 'false'); $(id).hidden = true; }
+  readColors(); drawPresetThumbs(); showPlay(); setMode('brush'); setBlend('feather'); setPress('time'); syncBrushUI(); syncTypeUI(); syncUndo();
+  if (!gl) { status('This browser doesn’t support WebGL 2, which Time Slip needs.', 0); return; }
+  try { initGL(); } catch (err) { status('Couldn’t start the renderer: ' + err.message, 0); return; }
+  layout(); showEmpty(); requestAnimationFrame(tick); getPool();
+}
+(document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]) : Promise.resolve()).then(start, start);
+})();
+</script>
+
+</body></html>
