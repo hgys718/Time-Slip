@@ -2180,6 +2180,16 @@ function drawTextFrame(x, g, W, H, p) {                 // p: 0–1 through the 
     if (g.motion === 'scale') x.scale(sc, sc); else if (g.motion === 'spin') x.rotate(an);
     x.fillText(txt, 0, 0); x.restore();
   };
+  if (g.scramble) {                                    // a field of random letters: shifted copies of it look the same when still
+    const CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', cwS = fs * .78, cols = Math.ceil(W / cwS) + 2, P = Math.max(Math.round(g.len * 30), cols + 3),   // one letter per frame, so any whole-frame offset lands on whole letters
+      rowsS = Math.ceil(H / (fs * 1.05)) + 1;
+    const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) % CH.length; };
+    for (let r = 0; r < rowsS; r++) {
+      const o = (r % 2 ? -1 : 1) * p * P, base = Math.floor(o), fr = o - base, y = r * fs * 1.05 + fs * .55;
+      for (let k = -1; k < cols; k++) x.fillText(CH[hash(r, ((k - base) % P + P) % P)], (k + fr) * cwS + cwS / 2, y);
+    }
+    return;
+  }
   if (!g.fill) {
     if (g.motion === 'slide') one(W + tw / 2 - p * (W + tw), H / 2);
     else if (g.motion === 'rise') one(W / 2, H + rh / 2 - p * (H + rh));
@@ -2286,12 +2296,12 @@ const EXAMPLES = [
   { name: 'Echo', desc: 'A field of pulsing words; each ring outward is a moment earlier, so the pulse spreads like a wave.',
     gen: { text: 'ECHO', motion: 'scale', font: 1, size: .14, fill: true, inv: true, len: 4 },
     layers: [{ kind: 'base', preset: 'radial', time: -2, blend: 'none' }], brush: -1 },
-  { name: 'Twist', desc: 'A spinning word, where left to right spans half a turn of time.',
-    gen: { text: 'TWIST', motion: 'spin', font: 2, size: .36, fill: false, inv: false, len: 4 },
-    layers: [{ kind: 'base', preset: 'tilt', time: -1, blend: 'none' }], brush: -1 },
-  { name: 'Hidden', desc: 'A field of moving words, with NOW set one second behind. It reads only while it plays.',
-    gen: { text: 'TIME', motion: 'slide', font: 3, size: .07, fill: true, inv: false, len: 4 },
-    layers: [{ kind: 'base', preset: 'flat', time: 0, blend: 'none' }, { kind: 'type', text: 'NOW', font: 0, size: .72, x: .5, y: .5, time: -1, blend: 'none' }], brush: -1 },
+  { name: 'Stretch', desc: 'A slit-scan: each column of the frame is a slightly different moment, timed against the word’s own speed, so its letters stretch out as it passes.',
+    gen: { text: 'STRETCH', motion: 'slide', font: 1, size: .5, fill: false, inv: true, len: 6 },
+    layers: [{ kind: 'base', preset: 'tilt', time: .85, blend: 'none' }], brush: -1 },
+  { name: 'Hidden', desc: 'A field of random moving letters, with NOW set half a second behind. Paused, the word is invisible; it appears only while it plays.',
+    gen: { text: 'NOW', motion: 'slide', font: 3, size: .028, fill: true, inv: false, len: 4, scramble: true },
+    layers: [{ kind: 'base', preset: 'flat', time: 0, blend: 'none' }, { kind: 'type', text: 'NOW', font: 0, size: .72, x: .5, y: .5, time: -.5, blend: 'none' }], brush: -.5 },
   { name: 'Slices', adv: true, desc: 'A spinning word cut into five bands, alternately painted into the past and the future, so each slice sits at its own angle.',
     gen: { text: 'SLICE', motion: 'spin', font: 0, size: .44, fill: false, inv: true, len: 4 },
     layers: [{ kind: 'base', preset: 'flat', time: 0, blend: 'none' },
@@ -2312,7 +2322,7 @@ function runExample(i) {
 }
 EXAMPLES.forEach((ex, i) => {
   const b = document.createElement('button'); b.type = 'button'; b.title = ex.desc; b.dataset.i = i;
-  b.innerHTML = ex.name + (ex.adv ? '<small>ADV</small>' : ''); b.onclick = () => runExample(i); $('exnav').append(b);
+  b.textContent = ex.name; b.onclick = () => runExample(i); $('exnav').append(b);
 });
 function markExample(i) { document.querySelectorAll('#exnav button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.i === i)); }
 $('tmake').addEventListener('click', () => makeText());
