@@ -136,21 +136,21 @@ select { font: inherit; letter-spacing: inherit; text-transform: none; color: va
 .views #vcmp[aria-pressed="true"] { color: var(--ink); background: none; text-decoration: underline; text-underline-offset: 4px; }
 .typerow input { flex: 1; min-width: 0; font: inherit; letter-spacing: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 0; padding: 5px 7px; }
 .typerow input:focus { border-color: var(--ink); outline: none; }
-#import { position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 80%, transparent); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-#import .dlg { width: min(940px, 100%); max-height: calc(100% - 16px); overflow: hidden; box-sizing: border-box; background: var(--bg); border-top: 1px solid var(--ink);
+#import, #textdlg { position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 80%, transparent); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#import .dlg, #textdlg .dlg { width: min(940px, 100%); max-height: calc(100% - 16px); overflow: hidden; box-sizing: border-box; background: var(--bg); border-top: 1px solid var(--ink);
   display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px 28px; padding: 10px 0 16px; align-items: start; }
-#import .top { grid-column: 1 / -1; }
-#import .icol { display: grid; gap: 14px; min-width: 0; align-content: start; }
-#import .icol:last-child { height: 100%; grid-template-rows: auto auto 1fr auto; }
-#import .icol .iact { align-self: end; }
+#import .top, #textdlg .top { grid-column: 1 / -1; }
+#import .icol, #textdlg .icol { display: grid; gap: 14px; min-width: 0; align-content: start; }
+#import .icol:last-child, #textdlg .icol:last-child { height: 100%; grid-template-rows: auto auto 1fr auto; }
+#import .icol .iact, #textdlg .icol .iact { align-self: end; }
 .pvbox { display: grid; place-items: center; background: var(--wash); }
 @media (max-width: 760px) {
   #import .dlg { grid-template-columns: minmax(0, 1fr); gap: 12px; overflow-y: auto; }
-  #import .icol:last-child { height: auto; grid-template-rows: none; }
+  #import .icol:last-child, #textdlg .icol:last-child { height: auto; grid-template-rows: none; }
   #iprev { max-height: 24vh; }
 }
-#import .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-#import .top .v { color: var(--mute); text-align: right; }
+#import .top, #textdlg .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+#import .top .v, #textdlg .top .v { color: var(--mute); text-align: right; }
 #iprev { display: block; max-width: 100%; max-height: max(80px, min(380px, 100vh - 330px)); width: auto; height: auto; }
 .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
 .opts button { display: grid; gap: 2px; text-align: left; padding: 7px 8px; color: var(--ink); }
@@ -168,9 +168,24 @@ select { font: inherit; letter-spacing: inherit; text-transform: none; color: va
 .irow { display: flex; justify-content: space-between; gap: 12px; color: var(--mute); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
 .irow b { color: var(--ink); font-weight: 400; }
 .iact { display: flex; justify-content: flex-end; gap: 4px; }
-.iact #igo { color: var(--bg); background: var(--ink); border-color: var(--ink); padding: 8px 16px; }
+.iact #igo, .iact #tgo { color: var(--bg); background: var(--ink); border-color: var(--ink); padding: 8px 16px; }
+#tprev { display: block; width: 100%; height: auto; outline: 1px solid var(--line); outline-offset: -1px; max-height: max(80px, min(360px, 100vh - 300px)); object-fit: contain; background: var(--wash); }
+#textdlg .icol:last-child { grid-template-rows: none; }
+#ttext { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; letter-spacing: .04em; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--line); padding: 4px 0 6px; text-transform: none; }
+#ttext:focus { border-bottom-color: var(--ink); }
+.opts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.opts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#tfonts button { font-size: 15px; letter-spacing: 0; text-transform: none; padding: 6px 8px; }
+.exlist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; width: 100%; }
+.exlist button { display: grid; gap: 3px; text-align: left; padding: 9px 10px; color: var(--ink) !important; background: none !important; border-color: var(--line) !important; }
+.exlist button:hover { border-color: var(--ink) !important; }
+.exlist button small { font-size: 9px; color: var(--mute); letter-spacing: .04em; text-transform: none; line-height: 1.35; }
+#empty .or { width: 100%; display: flex; align-items: center; gap: 10px; color: var(--mute); font-size: 9px; letter-spacing: .14em; }
+#empty .or::before, #empty .or::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+#empty .two { display: flex; gap: 6px; }
 #empty { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; }
-#empty .box { pointer-events: auto; display: grid; gap: 14px; justify-items: center; text-align: center; padding: 48px 56px; border: 1px dashed var(--line); width: min(440px, calc(100% - 64px)); box-sizing: border-box; }
+#empty .box { pointer-events: auto; display: grid; gap: 14px; justify-items: center; text-align: center; padding: 36px 40px; border: 1px dashed var(--line); width: min(500px, calc(100% - 64px)); box-sizing: border-box; }
 #empty.over .box { border-color: var(--ink); }
 #empty .big { font-size: 12px; font-weight: 500; letter-spacing: .22em; }
 #empty .note { max-width: 32ch; }
@@ -248,7 +263,6 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
   <div class="views" role="group" aria-label="View">
     <button type="button" id="vframe" aria-pressed="true" title="The result: every part of the frame drawn from its own moment (V)">Frame</button>
     <button type="button" id="vblock" aria-pressed="false" title="The clip as a stack of frames, with the time map as the surface cutting through it (V)">Block</button>
-    <button type="button" id="vcmp" aria-pressed="false" title="Split the frame: original on the left, time map on the right (C)">Compare</button>
     <button type="button" id="help" title="Shortcuts (?)">?</button>
   </div>
 </header>
@@ -259,10 +273,13 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
     <div class="body" id="b-src" hidden>
       <div class="btns fill">
         <button type="button" id="load">Load video</button>
+        <button type="button" id="tmake" title="Make a short text animation to use instead of a video">Make text</button>
         <button type="button" id="popen" title="Open a .timeslip project (⌘O)">Open project</button>
         <button type="button" id="psave" title="Save the map and settings as a .timeslip project (⌘S)">Save project</button>
       </div>
       <dl class="spec" id="spec"></dl>
+      <div class="row"><span>Examples</span><span class="v">a source and a map, ready to play</span></div>
+      <div class="exlist" id="exsrc"></div>
       <p class="note">Every frame is cached at the size above. Graphics memory holds a stretch of full-size frames around the playhead; anything outside it shows the block’s smaller copy until the full frame arrives (the dot beside the timecode is hollow while that happens). Exports always wait for full-size frames. A project keeps the map and settings, not the video: open it, then load the clip it was made with.</p>
       <input type="file" id="file" accept="video/*" hidden>
       <input type="file" id="pfile" accept=".timeslip,.timemachine,.timetool,.json,application/json" hidden>
@@ -415,10 +432,29 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
   <div class="iact"><button type="button" id="icancel">Cancel</button><button type="button" id="igo">Import</button></div>
   </div>
 </div></div>
+<div id="textdlg" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="tdtitle">
+  <div class="top"><span id="tdtitle">Text animation</span><span class="v">1280×720 · 30 fps · loops seamlessly</span></div>
+  <div class="icol">
+    <canvas id="tprev" width="640" height="360" aria-label="Preview of the text animation"></canvas>
+    <p class="note">This becomes the source, just like a video. Movement is what the time map works on, so pick a motion: the brush then pulls each painted area to a different moment of it.</p>
+  </div>
+  <div class="icol">
+    <div class="field"><div class="row"><span>Text</span></div><input id="ttext" type="text" maxlength="24" value="TIME" spellcheck="false" autocomplete="off" aria-label="Text"></div>
+    <div class="field"><div class="row"><span>Motion</span></div><div class="opts four" id="tmotion"></div></div>
+    <div class="field"><div class="row"><span>Font</span></div><div class="opts four" id="tfonts"></div></div>
+    <div class="field"><div class="row"><span>Size</span><span class="v" id="tsz2out"></span></div><input type="range" id="tsz2" min="6" max="70" value="34" aria-label="Text size"></div>
+    <div class="field"><div class="row"><span>Layout</span></div><div class="opts two" id="tlayout"></div></div>
+    <div class="field"><div class="row"><span>Colour</span></div><div class="opts two" id="tcolor"></div></div>
+    <div class="field"><div class="row"><span>Length</span></div><div class="opts three" id="tlen"></div></div>
+    <div class="iact"><button type="button" id="tcancel">Cancel</button><button type="button" id="tgo" class="go">Make</button></div>
+  </div>
+</div></div>
 <div id="empty"><div class="box">
   <span class="big">Drop a video</span>
-  <button type="button" id="load2">Load video</button>
-  <p class="note">MP4 or WebM. The clip stays on your computer. Paint a time map over it, then look at it as a frame or as a block of time.</p>
+  <div class="two"><button type="button" id="load2">Load video</button><button type="button" id="tmake2">Make text</button></div>
+  <p class="note">MP4 or WebM, or a text animation made here. Everything stays on your computer. Paint time onto it, then see it as a frame or as a block of time.</p>
+  <span class="or">or start from an example</span>
+  <div class="exlist" id="exempty"></div>
 </div></div>
 <div id="levels" hidden role="dialog" aria-labelledby="ltitle">
   <div class="top"><span id="ltitle">Levels</span><span class="v" id="lname"></span></div>
@@ -447,7 +483,7 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
     <dl class="spec"><dt class="kh">Map</dt>
       <dt>⌘Z  ⇧⌘Z</dt><dd>undo, redo</dd><dt>Esc</dt><dd>stop an export</dd><dt>1–5</dt><dd>base preset</dd></dl>
     <dl class="spec"><dt class="kh">View and files</dt>
-      <dt>V</dt><dd>frame / block</dd><dt>C</dt><dd>compare with original</dd><dt>M</dt><dd>show map</dd><dt>L</dt><dd>load video</dd><dt>⌘S  ⌘O</dt><dd>save, open project</dd><dt>?</dt><dd>this sheet</dd></dl>
+      <dt>V</dt><dd>frame / block</dd><dt>M</dt><dd>show map</dd><dt>L</dt><dd>load video</dd><dt>⌘S  ⌘O</dt><dd>save, open project</dd><dt>?</dt><dd>this sheet</dd></dl>
   </div>
 </div></div>
 <div id="status" hidden><div class="box"><span id="stext">Loading</span><div class="track"><div class="fill" id="sfill"></div></div><span class="sub" id="ssub"></span></div></div>
@@ -1243,7 +1279,7 @@ async function loadVideo(file) {
     status('Finishing the cache', 1); await enc.done();
     releaseAudio(old);
     v.pause(); v.currentTime = c.t0; v.muted = !S.sound; c.audio = v; c.url = url; decodeAudio(file, c);
-    setupClip(c); slotsUpload(); status(null); showSound(); showEmpty();
+    setupClip(c); slotsUpload(); status(null); showSound(); showEmpty(); syncSourceUI();
     if (pending) { const pj = pending; pending = null; applyProject(pj, `Opened ${pj.name}`); } else offerRestore();
     setTimeout(() => showHint(0), 900);
     S.playing = !reduce; showPlay();
@@ -1563,7 +1599,7 @@ async function runExport(kind) {
 function showEmpty() {
   $('empty').hidden = !!clip; $('play').disabled = $('rate').disabled = $('res').disabled = $('ram').disabled = !clip;
   document.querySelectorAll('.exp button, #presets button, #typeset, #imgmap, #invert, #overlay, #clearmap, #psave').forEach(b => b.disabled = !clip);
-  if (!clip) { $('imglev').disabled = true; $('meta').textContent = 'No video loaded'; $('tc').innerHTML = '0000 <span>/ 0000</span>'; $('spec').innerHTML = ''; }
+  if (!clip) { $('imglev').disabled = true; $('meta').textContent = 'No source loaded'; $('tc').innerHTML = '0000 <span>/ 0000</span>'; $('spec').innerHTML = ''; }
   const pe = $('empty').querySelector('.note');
   if (pending && !clip) pe.textContent = `Project “${pending.name}” is open. Load its video${pending.clip && pending.clip.file ? ` (${pending.clip.file})` : ''} and the map goes back on.`;
   dirty = true;
@@ -1712,7 +1748,7 @@ function unpackLayer(o) {
 function projectData() {
   const c = clip;
   return { app: 'Time Slip', version: 1, saved: new Date().toISOString(),
-    clip: { file: c.file, name: c.name, srcW: c.srcW, srcH: c.srcH, srcFps: c.srcFps, W: c.W, H: c.H, fps: c.fps, t0: c.t0, N: c.N },
+    clip: { file: c.file, name: c.name, srcW: c.srcW, srcH: c.srcH, srcFps: c.srcFps, W: c.W, H: c.H, fps: c.fps, t0: c.t0, N: c.N, gen: c.gen },
     layers: LY.map(packLayer), range: [S.lin, S.lout],
     brush: { time: S.btime, size: S.bsize, blend: S.blend, amt: S.amt, press: S.press }, block: { op: S.op, depth: S.depth } };
 }
@@ -1738,6 +1774,7 @@ async function openProject(file) {
   let pj; try { pj = JSON.parse(await file.text()); } catch (e) { flash('That file isn’t a Time Slip project.'); return; }
   if (!pj || !['Time Tool', 'Time Machine', 'Time Slip'].includes(pj.app) || !Array.isArray(pj.layers)) { flash('That file isn’t a Time Slip project.'); return; }
   pj.name = file.name.replace(/\.timeslip$|\.timemachine$|\.timetool$|\.json$/i, '');
+  if (pj.clip && pj.clip.gen && !(clip && clip.gen && JSON.stringify(clip.gen) === JSON.stringify(pj.clip.gen))) { pending = pj; loadText({ ...TDEF, ...pj.clip.gen }); return; }
   if (clip) { applyProject(pj, `Opened ${pj.name}`); if (pj.clip && pj.clip.file && pj.clip.file !== clip.file) note(`Opened onto ${clip.file}; it was made with ${pj.clip.file}.`); }
   else { pending = pj; showEmpty(); flash(`Project open. Load ${pj.clip && pj.clip.file ? pj.clip.file : 'its video'}.`); }
 }
@@ -1761,7 +1798,7 @@ function offerRestore() {
 const HINTS = [
   'Paint on the frame: that area now shows a moment from the past. Hold ⌥ Option and drag sideways to choose how far, into the past or the future.',
   'Time loops: a stroke reaching past the start plays from the end of the clip, and one past the end plays from the start. Blend changes every stroke at once.',
-  'Press C to compare with the original, and I and O to loop a section while you paint.',
+  'Press I and O to loop a section while you paint, then R to render a smooth preview of it.',
   'Press V to see the whole clip as a block of time. Press ? for every shortcut.',
 ];
 let hintI = 0;
@@ -1868,8 +1905,7 @@ function syncBrushUI() {
   brushEl.classList.toggle('future', S.btime > 0);
 }
 function showView() {
-  $('vframe').setAttribute('aria-pressed', S.view === 'frame'); $('vblock').setAttribute('aria-pressed', S.view === 'block'); $('vcmp').setAttribute('aria-pressed', S.cmp);
-  $('vcmp').disabled = S.view !== 'frame';
+  $('vframe').setAttribute('aria-pressed', S.view === 'frame'); $('vblock').setAttribute('aria-pressed', S.view === 'block');
   cv.className = S.view === 'frame' ? (S.mode === 'select' ? 'pick' : 'paint') : 'orbit'; brushEl.classList.remove('on'); hud.classList.remove('on'); dirty = true; ovlDirty = true;
 }
 function setBlend(m, apply) {                           // one blend for every stroke, word and image
@@ -2113,7 +2149,6 @@ $('invert').addEventListener('click', () => {
 });
 document.querySelectorAll('[data-cam]').forEach(b => b.addEventListener('click', () => { if (clip) camPreset(b.dataset.cam); }));
 $('vframe').addEventListener('click', () => setView('frame')); $('vblock').addEventListener('click', () => setView('block'));
-$('vcmp').addEventListener('click', () => { S.cmp = !S.cmp; showView(); });
 $('help').addEventListener('click', () => toggleKeys(true)); $('kclose').addEventListener('click', () => toggleKeys(false));
 $('keys').addEventListener('click', e => { if (e.target === $('keys')) toggleKeys(false); });
 $('hnext').addEventListener('click', () => hintI + 1 >= HINTS.length ? endHints() : showHint(hintI + 1)); $('hclose').addEventListener('click', endHints);
@@ -2124,6 +2159,147 @@ $('res').addEventListener('click', () => { if (busy) return; const i = RES.findI
 $('ram').addEventListener('click', () => ramPreview());
 $('load').addEventListener('click', () => $('file').click());
 $('load2').addEventListener('click', () => $('file').click());
+
+/* ---------------- text source: a short looping text animation, made here and used like a video ---------------- */
+const TMOTIONS = [['slide', 'Slide'], ['rise', 'Rise'], ['scale', 'Scale'], ['spin', 'Spin']];
+const TDEF = { text: 'TIME', motion: 'slide', font: 0, size: .34, fill: false, inv: false, len: 4 };
+function drawTextFrame(x, g, W, H, p) {                 // p: 0–1 through the loop; p = 0 and p = 1 look the same
+  const [fam, wt] = FONTS[g.font] || FONTS[0], fs = g.size * H, txt = g.text || ' ', TAU = Math.PI * 2;
+  x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = g.inv ? '#000' : '#fff'; x.fillRect(0, 0, W, H);
+  x.fillStyle = g.inv ? '#fff' : '#000'; x.font = `${wt} ${fs}px "${fam}"`; x.textAlign = 'center'; x.textBaseline = 'middle';
+  const tw = Math.max(1, x.measureText(txt).width), gap = fs * .45, cw = tw + gap, rh = fs * 1.12;
+  const sc = .1 + .9 * (.5 - .5 * Math.cos(TAU * p)), an = TAU * p;
+  const one = (cx, cy) => {
+    x.save(); x.translate(cx, cy);
+    if (g.motion === 'scale') x.scale(sc, sc); else if (g.motion === 'spin') x.rotate(an);
+    x.fillText(txt, 0, 0); x.restore();
+  };
+  if (!g.fill) {
+    if (g.motion === 'slide') one(W + tw / 2 - p * (W + tw), H / 2);
+    else if (g.motion === 'rise') one(W / 2, H + rh / 2 - p * (H + rh));
+    else one(W / 2, H / 2);
+    return;
+  }
+  const rows = Math.ceil(H / rh) + 2, cols = Math.ceil(W / cw) + 2;
+  for (let r = -1; r < rows; r++) {
+    const dir = r % 2 ? -1 : 1, ox = g.motion === 'slide' ? dir * p * cw : 0, oy = g.motion === 'rise' ? -p * rh * 2 : 0;
+    for (let k = -1; k < cols; k++) one(k * cw + (r % 2) * cw / 2 + ox + cw / 2, r * rh + rh / 2 + oy + (g.motion === 'rise' ? rh * 2 : 0) - rh);
+  }
+}
+let tdOpen = false;
+function textDialog(start) {
+  return new Promise(resolve => {
+    const g = { ...TDEF, ...(start || {}) }, pv = $('tprev'), px = pv.getContext('2d');
+    const opts = (id, list, key, label) => {
+      const el = $(id); el.innerHTML = '';
+      for (const [v, name, style] of list) {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = name; if (style) b.style.cssText = style;
+        b.setAttribute('aria-pressed', g[key] === v); b.onclick = () => { g[key] = v; el.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); };
+        el.append(b);
+      }
+    };
+    opts('tmotion', TMOTIONS, 'motion');
+    opts('tfonts', FONTS.map(([f, w], i) => [i, 'Aa', `font-family: "${f}"; font-weight: ${w};`]), 'font');
+    opts('tlayout', [[false, 'One word'], [true, 'Fill the frame']], 'fill');
+    opts('tcolor', [[false, 'Black on white'], [true, 'White on black']], 'inv');
+    opts('tlen', [[2, '2 s'], [4, '4 s'], [6, '6 s']], 'len');
+    $('ttext').value = g.text; $('tsz2').value = Math.round(g.size * 100); $('tsz2out').textContent = Math.round(g.size * 100) + '%';
+    $('ttext').oninput = () => { g.text = $('ttext').value; };
+    $('tsz2').oninput = () => { g.size = +$('tsz2').value / 100; $('tsz2out').textContent = $('tsz2').value + '%'; };
+    Promise.all(FONTS.map((f, i) => fontReady(i))).catch(() => { });
+    const t0 = performance.now(); let raf = 0;
+    const loop = () => { drawTextFrame(px, g, pv.width, pv.height, ((performance.now() - t0) / 1000 / g.len) % 1); raf = requestAnimationFrame(loop); };
+    const close = v => { tdOpen = false; cancelAnimationFrame(raf); $('textdlg').hidden = true; removeEventListener('keydown', onKey, true); resolve(v); };
+    const onKey = e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); close(null); } else if (e.key === 'Enter') { e.stopImmediatePropagation(); e.preventDefault(); $('tgo').click(); } };
+    addEventListener('keydown', onKey, true);
+    $('tcancel').onclick = () => close(null);
+    $('tgo').onclick = () => { g.text = g.text.trim() || 'TIME'; close(g); };
+    tdOpen = true; $('textdlg').hidden = false; loop(); $('ttext').focus(); $('ttext').select();
+  });
+}
+async function makeText(g, keepMap) {                   // from the dialog, or from an example or a project
+  if (busy) return;
+  if (!g) {
+    const cur = clip && clip.kind === 'text' ? clip.gen : null;
+    g = await textDialog(cur); if (!g) return;
+    if (clip && !pending && LY.length > 1) keepMap = true;   // editing the text keeps what you painted
+  }
+  if (keepMap && clip) { const pj = projectData(); pj.name = 'map'; pending = pj; pending.quiet = true; }
+  await loadText(g);
+}
+async function loadText(g) {
+  busy = true; cancel = false; const wasPlaying = S.playing; S.playing = false; showPlay();
+  const old = clip, W = 1280, H = 720, fps = 30, N = Math.round(g.len * fps);
+  try {
+    status('Making the text animation', 0); $('empty').hidden = true;
+    await fontReady(g.font);
+    if (old) old.cache = null;
+    let pl = plan(W, H, N);
+    for (;;) {
+      TEX.ring = allocArray(TEX.ring, 1, 1, 1, 0); TEX.prox = allocArray(TEX.prox, 1, 1, 1, 2);
+      TEX.prox = allocArray(TEX.prox, pl.PW, pl.PH, pl.PN, 2);
+      TEX.ring = TEX.prox ? allocArray(TEX.ring, W, H, pl.K, 0) : null;
+      if (TEX.prox && TEX.ring) break;
+      BUDGET *= .6; if (BUDGET < 60e6) throw new Error('gpu'); pl = plan(W, H, N);
+    }
+    const nm = g.text.trim() || 'text';
+    const c = { kind: 'text', gen: { ...g }, file: `${nm} (text)`, name: nm, W, H, RW: W, RH: H, N, fps, srcFps: fps, srcW: W, srcH: H, t0: 0, ...pl, cache: new Array(N), bytes: 0, reader: 'made here' };
+    initStream(c); pcv.width = c.PW; pcv.height = c.PH;
+    const enc = encoder(c, await getPool()), gc = document.createElement('canvas'); gc.width = W; gc.height = H;
+    const gx = gc.getContext('2d'), t1 = performance.now();
+    for (let i = 0; i < N; i++) {
+      if (cancel) throw new Error('cancel');
+      drawTextFrame(gx, g, W, H, i / N);
+      const bmp = await createImageBitmap(gc);
+      if (i % c.ps === 0) { px2.drawImage(bmp, 0, 0, c.PW, c.PH); putLayer(TEX.prox, 2, i / c.ps, c.PW, c.PH, pcv); }
+      if (i < c.K) { putLayer(TEX.ring, 0, i, W, H, bmp); R.slot[i] = i; R.where[i] = i; R.ver++; }
+      await enc.add(i, bmp);
+      if (i % 4 === 0 || i === N - 1) status(`Making frame ${i + 1} of ${N}`, (i + 1) / N, 'Esc to stop');
+    }
+    c.loadSecs = (performance.now() - t1) / 1000;
+    status('Finishing', 1); await enc.done();
+    releaseAudio(old);
+    setupClip(c); slotsUpload(); status(null); showSound(); showEmpty(); syncSourceUI();
+    if (pending) { const pj = pending; pending = null; applyProject(pj, pj.quiet ? '' : pj.why || `Opened ${pj.name}`); } else offerRestore();
+    setTimeout(() => showHint(0), 900);
+    S.playing = !reduce; showPlay();
+  } catch (e) {
+    status(null); pending = null;
+    if (e.message !== 'cancel') flash(e.message === 'gpu' ? 'This device’s graphics memory is full.' : 'Couldn’t make the text animation.');
+    if (old && clip === old && !old.cache) { clip = null; freeGPU(); }
+    S.playing = clip ? wasPlaying : false; showPlay(); showEmpty(); if (clip) layout();
+  } finally { busy = false; dirty = true; }
+}
+function syncSourceUI() { $('tmake').textContent = clip && clip.kind === 'text' ? 'Edit text' : 'Make text'; }
+
+/* ---------------- examples: a source and a map, set up for a first look ---------------- */
+const EXAMPLES = [
+  { name: 'Lean', desc: 'A word slides across; the top of the frame runs later than the bottom, so it leans.',
+    gen: { text: 'LEAN', motion: 'slide', font: 0, size: .4, fill: false, inv: false, len: 6 },
+    layers: [{ kind: 'base', preset: 'fall', time: -.5, blend: 'none' }], brush: -.6 },
+  { name: 'Echo', desc: 'A field of pulsing words; each ring outward is a moment earlier, so the pulse spreads like a wave.',
+    gen: { text: 'ECHO', motion: 'scale', font: 1, size: .14, fill: true, inv: true, len: 4 },
+    layers: [{ kind: 'base', preset: 'radial', time: -2, blend: 'none' }], brush: -1 },
+  { name: 'Twist', desc: 'A spinning word, where left to right spans half a turn of time.',
+    gen: { text: 'TWIST', motion: 'spin', font: 2, size: .36, fill: false, inv: false, len: 4 },
+    layers: [{ kind: 'base', preset: 'tilt', time: -1, blend: 'none' }], brush: -1 },
+  { name: 'Hidden', desc: 'A field of moving words, with NOW set one second behind. It reads only while it plays.',
+    gen: { text: 'TIME', motion: 'slide', font: 3, size: .07, fill: true, inv: false, len: 4 },
+    layers: [{ kind: 'base', preset: 'flat', time: 0, blend: 'none' }, { kind: 'type', text: 'NOW', font: 0, size: .72, x: .5, y: .5, time: -1, blend: 'none' }], brush: -1 },
+];
+function runExample(i) {
+  const ex = EXAMPLES[i]; if (!ex || busy) return;
+  pending = { app: 'Time Slip', name: ex.name, why: `Example: ${ex.name}. Paint on it, or press ⌘Z to undo the map.`,
+    layers: ex.layers.map(l => ({ vis: true, amt: .3, dx: 0, dy: 0, ...l })), brush: { time: ex.brush, size: S.bsize, blend: 'feather', amt: .3, press: S.press } };
+  loadText(ex.gen);
+}
+for (const id of ['exempty', 'exsrc']) {
+  const el = $(id);
+  EXAMPLES.forEach((ex, i) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `${ex.name}<small>${ex.desc}</small>`; b.onclick = () => runExample(i); el.append(b); });
+}
+$('tmake').addEventListener('click', () => makeText());
+$('tmake2').addEventListener('click', () => makeText());
+
 $('popen').addEventListener('click', () => $('pfile').click()); $('psave').addEventListener('click', saveProject);
 $('pfile').addEventListener('change', e => { openProject(e.target.files[0]); e.target.value = ''; });
 $('typeset').addEventListener('click', () => { const t = selType(); if (t) { checkpoint(); LY = LY.filter(l => l !== t); mapDirty = true; syncTypeUI(); autosave(); } else addType(); });
@@ -2172,6 +2348,7 @@ addEventListener('pointerup', () => { const a = document.activeElement; if (a &&
 addEventListener('change', e => { if (e.target.matches && e.target.matches('select, input[type="range"]')) e.target.blur(); }, true);
 addEventListener('keydown', e => {
   const t = e.target, mod = e.metaKey || e.ctrlKey, k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (tdOpen) return;
   if (!$('keys').hidden && (e.key === 'Escape' || e.key === '?')) { e.preventDefault(); toggleKeys(false); return; }
   if (e.key === 'Escape') { cancel = true; return; }
   if (e.key === 'Tab' && !(t.matches && t.matches('input[type="text"], input[type="number"]'))) { e.preventDefault(); return; }
@@ -2189,7 +2366,6 @@ addEventListener('keydown', e => {
   else if (k === 'ArrowLeft' || k === ',') { e.preventDefault(); step(-1); }
   else if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); S.rateI = clamp(S.rateI + (k === 'ArrowUp' ? 1 : -1), 0, RATES.length - 1); showPlay(); }
   else if (k === 'v') setView(S.view === 'frame' ? 'block' : 'frame');
-  else if (k === 'c') { if (S.view === 'frame') { S.cmp = !S.cmp; showView(); } }
   else if (k === 'b') setMode('brush'); else if (k === 'e') setMode('erase');
   else if (k === 'r') ramPreview();
   else if (k === 'i') setLoop('in'); else if (k === 'o') setLoop('out'); else if (k === 'x') setLoop('clear');
