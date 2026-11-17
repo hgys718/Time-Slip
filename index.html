@@ -37,6 +37,14 @@ button:disabled { opacity: .4; cursor: default; }
 .mark { font-size: 12px; font-weight: 500; letter-spacing: .22em; margin: 0; }
 #meta { color: var(--mute); }
 .views { display: flex; gap: 0; }
+.exnav { display: grid; gap: 2px; margin-top: 22px; justify-items: start; }
+.exnav .exh { color: var(--mute); font-size: 9px; letter-spacing: .14em; margin-bottom: 4px; }
+#exnav { display: grid; gap: 1px; justify-items: start; }
+#exnav button { border: 0; background: none; padding: 2px 0; color: var(--mute); font-size: 10px; text-align: left; display: flex; gap: 8px; align-items: baseline; }
+#exnav button:hover, #exnav button[aria-pressed="true"] { color: var(--ink); }
+#exnav button[aria-pressed="true"]::before { content: '—'; margin-left: -2px; }
+#exnav button small { font-size: 8px; letter-spacing: .1em; color: var(--mute); border: 1px solid var(--line); padding: 0 3px; }
+@media (max-width: 860px) { .exnav { margin-top: 4px; } #exnav { display: flex; flex-wrap: wrap; gap: 0 12px; } }
 .views button { border: 0; padding: 0 12px 0 0; background: none; color: var(--mute); }
 .views button[aria-pressed="true"] { color: var(--ink); background: none; text-decoration: underline; text-underline-offset: 4px; }
 
@@ -265,6 +273,7 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
     <button type="button" id="vblock" aria-pressed="false" title="The clip as a stack of frames, with the time map as the surface cutting through it (V)">Block</button>
     <button type="button" id="help" title="Shortcuts (?)">?</button>
   </div>
+  <nav class="exnav" aria-label="Examples"><span class="exh">Examples</span><div id="exnav"></div></nav>
 </header>
 
 <aside class="panel" aria-label="Controls">
@@ -278,8 +287,6 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
         <button type="button" id="psave" title="Save the map and settings as a .timeslip project (⌘S)">Save project</button>
       </div>
       <dl class="spec" id="spec"></dl>
-      <div class="row"><span>Examples</span><span class="v">a source and a map, ready to play</span></div>
-      <div class="exlist" id="exsrc"></div>
       <p class="note">Every frame is cached at the size above. Graphics memory holds a stretch of full-size frames around the playhead; anything outside it shows the block’s smaller copy until the full frame arrives (the dot beside the timecode is hollow while that happens). Exports always wait for full-size frames. A project keeps the map and settings, not the video: open it, then load the clip it was made with.</p>
       <input type="file" id="file" accept="video/*" hidden>
       <input type="file" id="pfile" accept=".timeslip,.timemachine,.timetool,.json,application/json" hidden>
@@ -453,8 +460,7 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
   <span class="big">Drop a video</span>
   <div class="two"><button type="button" id="load2">Load video</button><button type="button" id="tmake2">Make text</button></div>
   <p class="note">MP4 or WebM, or a text animation made here. Everything stays on your computer. Paint time onto it, then see it as a frame or as a block of time.</p>
-  <span class="or">or start from an example</span>
-  <div class="exlist" id="exempty"></div>
+  <p class="note">New here? Try one of the examples on the left.</p>
 </div></div>
 <div id="levels" hidden role="dialog" aria-labelledby="ltitle">
   <div class="top"><span id="ltitle">Levels</span><span class="v" id="lname"></span></div>
@@ -2270,7 +2276,7 @@ async function loadText(g) {
     S.playing = clip ? wasPlaying : false; showPlay(); showEmpty(); if (clip) layout();
   } finally { busy = false; dirty = true; }
 }
-function syncSourceUI() { $('tmake').textContent = clip && clip.kind === 'text' ? 'Edit text' : 'Make text'; }
+function syncSourceUI() { if (!pending || !pending.why) markExample(-1); $('tmake').textContent = clip && clip.kind === 'text' ? 'Edit text' : 'Make text'; }
 
 /* ---------------- examples: a source and a map, set up for a first look ---------------- */
 const EXAMPLES = [
@@ -2286,17 +2292,29 @@ const EXAMPLES = [
   { name: 'Hidden', desc: 'A field of moving words, with NOW set one second behind. It reads only while it plays.',
     gen: { text: 'TIME', motion: 'slide', font: 3, size: .07, fill: true, inv: false, len: 4 },
     layers: [{ kind: 'base', preset: 'flat', time: 0, blend: 'none' }, { kind: 'type', text: 'NOW', font: 0, size: .72, x: .5, y: .5, time: -1, blend: 'none' }], brush: -1 },
+  { name: 'Slices', adv: true, desc: 'A spinning word cut into five bands, alternately painted into the past and the future, so each slice sits at its own angle.',
+    gen: { text: 'SLICE', motion: 'spin', font: 0, size: .44, fill: false, inv: true, len: 4 },
+    layers: [{ kind: 'base', preset: 'flat', time: 0, blend: 'none' },
+      band(.1, -.4), band(.3, .2), band(.5, -.2), band(.7, .4), band(.9, -.6)], brush: .3 },
+  { name: 'Vortex', adv: true, desc: 'A field of spinning words under the Tunnel map with Ripple, so time spins outward from the centre and wobbles as it goes.',
+    gen: { text: 'TIME', motion: 'spin', font: 3, size: .09, fill: true, inv: false, len: 4 },
+    layers: [{ kind: 'base', preset: 'tunnel', time: -2, blend: 'ripple', amt: .7 }], brush: -1 },
 ];
+function band(v, time) {                                // a painted stroke straight across the frame, for the examples
+  const r = .058, pts = []; for (let u = -.06; u <= 1.06; u += r * .4) pts.push(+u.toFixed(4), v, r, 1);
+  return { kind: 'stroke', time, blend: 'none', amt: .3, pts };
+}
 function runExample(i) {
-  const ex = EXAMPLES[i]; if (!ex || busy) return;
+  const ex = EXAMPLES[i]; if (!ex || busy) return; markExample(i);
   pending = { app: 'Time Slip', name: ex.name, why: `Example: ${ex.name}. Paint on it, or press ⌘Z to undo the map.`,
     layers: ex.layers.map(l => ({ vis: true, amt: .3, dx: 0, dy: 0, ...l })), brush: { time: ex.brush, size: S.bsize, blend: 'feather', amt: .3, press: S.press } };
   loadText(ex.gen);
 }
-for (const id of ['exempty', 'exsrc']) {
-  const el = $(id);
-  EXAMPLES.forEach((ex, i) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `${ex.name}<small>${ex.desc}</small>`; b.onclick = () => runExample(i); el.append(b); });
-}
+EXAMPLES.forEach((ex, i) => {
+  const b = document.createElement('button'); b.type = 'button'; b.title = ex.desc; b.dataset.i = i;
+  b.innerHTML = ex.name + (ex.adv ? '<small>ADV</small>' : ''); b.onclick = () => runExample(i); $('exnav').append(b);
+});
+function markExample(i) { document.querySelectorAll('#exnav button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.i === i)); }
 $('tmake').addEventListener('click', () => makeText());
 $('tmake2').addEventListener('click', () => makeText());
 
