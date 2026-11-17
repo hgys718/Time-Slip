@@ -177,13 +177,24 @@ select { font: inherit; letter-spacing: inherit; text-transform: none; color: va
 .irow b { color: var(--ink); font-weight: 400; }
 .iact { display: flex; justify-content: flex-end; gap: 4px; }
 .iact #igo, .iact #tgo { color: var(--bg); background: var(--ink); border-color: var(--ink); padding: 8px 16px; }
-#tprev { display: block; width: 100%; height: auto; outline: 1px solid var(--line); outline-offset: -1px; max-height: max(80px, min(360px, 100vh - 300px)); object-fit: contain; background: var(--wash); }
+#tprev { display: block; margin: 0 auto; width: auto; max-width: 100%; height: auto; outline: 1px solid var(--line); outline-offset: -1px; max-height: max(80px, min(360px, 100vh - 300px)); object-fit: contain; background: var(--wash); }
 #textdlg .icol:last-child { grid-template-rows: none; }
 #ttext { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; letter-spacing: .04em; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--line); padding: 4px 0 6px; text-transform: none; }
 #ttext:focus { border-bottom-color: var(--ink); }
 .opts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .opts.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.opts.six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.opts.six button { justify-items: center; text-align: center; padding: 6px 2px 5px; gap: 4px; font-size: 10px; }
+.opts.six .ar { display: block; border: 1px solid currentColor; }
+.tpair { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
+.tcols { display: grid; grid-template-columns: 1fr 1fr auto; gap: 4px; }
+.tcols .sw { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); padding: 5px 8px; cursor: pointer; position: relative; }
+.tcols .sw:hover { border-color: var(--ink); }
+.tcols input[type=color] { width: 22px; height: 22px; padding: 0; border: 1px solid var(--line); background: none; cursor: pointer; flex: none; }
+.tcols input[type=color]::-webkit-color-swatch-wrapper { padding: 0; } .tcols input[type=color]::-webkit-color-swatch { border: 0; }
+.tcols .sw span { display: grid; gap: 1px; line-height: 1.2; } .tcols .sw b { font-weight: 400; font-size: 10px; } .tcols .sw i { font-style: normal; font-size: 9px; color: var(--mute); text-transform: uppercase; }
+#tswap { padding: 0 10px; }
 #tfonts button { font-size: 15px; letter-spacing: 0; text-transform: none; padding: 6px 8px; }
 .exlist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; width: 100%; }
 .exlist button { display: grid; gap: 3px; text-align: left; padding: 9px 10px; color: var(--ink) !important; background: none !important; border-color: var(--line) !important; }
@@ -440,7 +451,7 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
   </div>
 </div></div>
 <div id="textdlg" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="tdtitle">
-  <div class="top"><span id="tdtitle">Text animation</span><span class="v">1280×720 · 30 fps · loops seamlessly</span></div>
+  <div class="top"><span id="tdtitle">Text animation</span><span class="v" id="tdspec">1280×720 · 30 fps · loops seamlessly</span></div>
   <div class="icol">
     <canvas id="tprev" width="640" height="360" aria-label="Preview of the text animation"></canvas>
     <p class="note">This becomes the source, just like a video. Movement is what the time map works on, so pick a motion: the brush then pulls each painted area to a different moment of it.</p>
@@ -450,9 +461,13 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
     <div class="field"><div class="row"><span>Motion</span></div><div class="opts four" id="tmotion"></div></div>
     <div class="field"><div class="row"><span>Font</span></div><div class="opts four" id="tfonts"></div></div>
     <div class="field"><div class="row"><span>Size</span><span class="v" id="tsz2out"></span></div><input type="range" id="tsz2" min="6" max="70" value="34" aria-label="Text size"></div>
-    <div class="field"><div class="row"><span>Layout</span></div><div class="opts two" id="tlayout"></div></div>
-    <div class="field"><div class="row"><span>Colour</span></div><div class="opts two" id="tcolor"></div></div>
-    <div class="field"><div class="row"><span>Length</span></div><div class="opts three" id="tlen"></div></div>
+    <div class="field"><div class="row"><span>Colour</span></div>
+      <div class="tcols"><label class="sw"><input type="color" id="tfg" aria-label="Text colour"><span><b>Text</b><i id="tfgv"></i></span></label><label class="sw"><input type="color" id="tbg" aria-label="Background colour"><span><b>Background</b><i id="tbgv"></i></span></label><button type="button" id="tswap" title="Swap text and background">⇄</button></div></div>
+    <div class="field"><div class="row"><span>Shape</span><span class="v">tall · wide</span></div><div class="opts six" id="tshape"></div></div>
+    <div class="tpair">
+      <div class="field"><div class="row"><span>Layout</span></div><div class="opts two" id="tlayout"></div></div>
+      <div class="field"><div class="row"><span>Length</span></div><div class="opts three" id="tlen"></div></div>
+    </div>
     <div class="iact"><button type="button" id="tcancel">Cancel</button><button type="button" id="tgo" class="go">Make</button></div>
   </div>
 </div></div>
@@ -2168,11 +2183,17 @@ $('load2').addEventListener('click', () => $('file').click());
 
 /* ---------------- text source: a short looping text animation, made here and used like a video ---------------- */
 const TMOTIONS = [['slide', 'Slide'], ['rise', 'Rise'], ['scale', 'Scale'], ['spin', 'Spin']];
-const TDEF = { text: 'TIME', motion: 'slide', font: 0, size: .34, fill: false, inv: false, len: 4 };
+const TDEF = { text: 'TIME', motion: 'slide', font: 0, size: .34, fill: false, inv: false, len: 4, shape: '16:9' };
+const TSHAPES = ['9:16', '3:4', '4:5', '16:9', '4:3', '5:4'];
+function shapeSize(sh, long = 1280) {                   // long side fixed; even sizes for the encoder
+  const [a, b] = (sh || '16:9').split(':').map(Number), r = a / b;
+  return r >= 1 ? [long, Math.round(long / r / 2) * 2] : [Math.round(long * r / 2) * 2, long];
+}
+const tColors = g => [g.fg || (g.inv ? '#ffffff' : '#000000'), g.bg || (g.inv ? '#000000' : '#ffffff')];
 function drawTextFrame(x, g, W, H, p) {                 // p: 0–1 through the loop; p = 0 and p = 1 look the same
-  const [fam, wt] = FONTS[g.font] || FONTS[0], fs = g.size * H, txt = g.text || ' ', TAU = Math.PI * 2;
-  x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = g.inv ? '#000' : '#fff'; x.fillRect(0, 0, W, H);
-  x.fillStyle = g.inv ? '#fff' : '#000'; x.font = `${wt} ${fs}px "${fam}"`; x.textAlign = 'center'; x.textBaseline = 'middle';
+  const [fam, wt] = FONTS[g.font] || FONTS[0], fs = g.size * Math.min(W, H), txt = g.text || ' ', TAU = Math.PI * 2, [fg, bg] = tColors(g);
+  x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+  x.fillStyle = fg; x.font = `${wt} ${fs}px "${fam}"`; x.textAlign = 'center'; x.textBaseline = 'middle';
   const tw = Math.max(1, x.measureText(txt).width), gap = fs * .45, cw = tw + gap, rh = fs * 1.12;
   const sc = .1 + .9 * (.5 - .5 * Math.cos(TAU * p)), an = TAU * p;
   const one = (cx, cy) => {
@@ -2206,18 +2227,27 @@ let tdOpen = false;
 function textDialog(start) {
   return new Promise(resolve => {
     const g = { ...TDEF, ...(start || {}) }, pv = $('tprev'), px = pv.getContext('2d');
-    const opts = (id, list, key, label) => {
+    const opts = (id, list, key, label, after) => {
       const el = $(id); el.innerHTML = '';
-      for (const [v, name, style] of list) {
+      for (const [v, name, style, iw, ih] of list) {
         const b = document.createElement('button'); b.type = 'button'; b.textContent = name; if (style) b.style.cssText = style;
-        b.setAttribute('aria-pressed', g[key] === v); b.onclick = () => { g[key] = v; el.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); };
+        if (iw) { const ic = document.createElement('span'); ic.className = 'ar'; ic.style.width = iw + 'px'; ic.style.height = ih + 'px'; b.prepend(ic); }
+        b.setAttribute('aria-pressed', g[key] === v); b.onclick = () => { g[key] = v; el.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); if (after) after(); };
         el.append(b);
       }
     };
     opts('tmotion', TMOTIONS, 'motion');
     opts('tfonts', FONTS.map(([f, w], i) => [i, 'Aa', `font-family: "${f}"; font-weight: ${w};`]), 'font');
     opts('tlayout', [[false, 'One word'], [true, 'Fill the frame']], 'fill');
-    opts('tcolor', [[false, 'Black on white'], [true, 'White on black']], 'inv');
+    [g.fg, g.bg] = tColors(g);
+    const showCol = () => { $('tfg').value = g.fg; $('tbg').value = g.bg; $('tfgv').textContent = g.fg; $('tbgv').textContent = g.bg; };
+    $('tfg').oninput = () => { g.fg = $('tfg').value; showCol(); };
+    $('tbg').oninput = () => { g.bg = $('tbg').value; showCol(); };
+    $('tswap').onclick = () => { [g.fg, g.bg] = [g.bg, g.fg]; showCol(); };
+    showCol();
+    const fitPrev = () => { const [w, h] = shapeSize(g.shape, 640); pv.width = w; pv.height = h; const [W, H] = shapeSize(g.shape); $('tdspec').textContent = `${W}×${H} · 30 fps · loops seamlessly`; };
+    opts('tshape', TSHAPES.map(sh => { const [w, h] = shapeSize(sh, 18); return [sh, sh, null, w, h]; }), 'shape', null, fitPrev);
+    fitPrev();
     opts('tlen', [[2, '2 s'], [4, '4 s'], [6, '6 s']], 'len');
     $('ttext').value = g.text; $('tsz2').value = Math.round(g.size * 100); $('tsz2out').textContent = Math.round(g.size * 100) + '%';
     $('ttext').oninput = () => { g.text = $('ttext').value; };
@@ -2245,7 +2275,7 @@ async function makeText(g, keepMap) {                   // from the dialog, or f
 }
 async function loadText(g) {
   busy = true; cancel = false; const wasPlaying = S.playing; S.playing = false; showPlay();
-  const old = clip, W = 1280, H = 720, fps = 30, N = Math.round(g.len * fps);
+  const old = clip, [W, H] = shapeSize(g.shape), fps = 30, N = Math.round(g.len * fps);
   try {
     status('Making the text animation', 0); $('empty').hidden = true;
     await fontReady(g.font);
