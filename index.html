@@ -81,7 +81,7 @@ button:disabled { opacity: .4; cursor: default; }
 .src { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
 .src .row b { font-weight: 400; color: var(--ink); font-variant-numeric: tabular-nums; }
 #levels { position: fixed; z-index: 6; left: max(20px, env(safe-area-inset-left, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: 320px; max-width: calc(100% - 32px);
-  max-height: calc(100% - 140px); overflow-y: auto; box-sizing: border-box; background: var(--bg); border-top: 1px solid var(--ink); display: grid; gap: 12px; padding: 10px 0 14px; }
+  max-height: calc(100% - 140px); overflow-y: auto; box-sizing: border-box; background: var(--bg); border: 1px solid var(--line); border-top-color: var(--ink); display: grid; gap: 12px; padding: 16px 18px 18px; }
 #levels .top { display: flex; justify-content: space-between; gap: 12px; }
 #levels .top .v { color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #levels .histbox { padding: 0 6px 2px; }
@@ -126,16 +126,16 @@ select { font: inherit; letter-spacing: inherit; text-transform: none; color: va
 .tcw { display: inline-flex; align-items: center; gap: 8px; }
 #qdot { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--ink); background: var(--ink); box-sizing: border-box; }
 #qdot.wait { background: transparent; }
-#restore, #hint { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--bg); border-top: 1px solid var(--ink); padding: 8px 0 8px 2px; max-width: calc(100% - 32px); }
+#restore, #hint { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--line); border-top-color: var(--ink); padding: 8px 8px 8px 14px; max-width: calc(100% - 32px); box-sizing: border-box; }
 #restore { top: calc(20px + env(safe-area-inset-top, 0px)); }
-#toast { position: fixed; z-index: 9; left: 50%; top: calc(20px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 7px 12px; max-width: calc(100% - 32px); transition: opacity .35s; }
+#toast { position: fixed; z-index: 10; left: 50%; top: calc(20px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 7px 12px; max-width: calc(100% - 32px); transition: opacity .35s; }
 #toast.out { opacity: 0; }
 #hint { bottom: calc(60px + env(safe-area-inset-bottom, 0px)); text-transform: none; letter-spacing: .02em; }
 #restore button, #hint button { padding: 4px 8px; }
 #rok, #hnext { color: var(--bg); background: var(--ink); border-color: var(--ink); }
 #hclose { border: 0; font-size: 14px; }
-#keys { position: fixed; inset: 0; z-index: 8; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 82%, transparent); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-#keys .kbox { width: min(820px, 100%); max-height: calc(100% - 32px); overflow-y: auto; background: var(--bg); border-top: 1px solid var(--ink); padding: 10px 0 18px; display: grid; gap: 14px; }
+#keys { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 92%, transparent); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#keys .kbox { width: min(860px, 100%); max-height: calc(100% - 32px); overflow-y: auto; box-sizing: border-box; background: var(--bg); border: 1px solid var(--line); border-top-color: var(--ink); padding: 22px 28px 26px; display: grid; gap: 18px; }
 #keys .top { display: flex; justify-content: space-between; align-items: center; }
 .kgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 18px 28px; }
 .kgrid .spec { grid-template-columns: max-content 1fr; align-content: start; row-gap: 7px; } .kgrid .spec dt { color: var(--ink); white-space: nowrap; } .kgrid .spec dd { color: var(--mute); text-align: left; text-transform: none; letter-spacing: .02em; }
@@ -144,22 +144,22 @@ select { font: inherit; letter-spacing: inherit; text-transform: none; color: va
 .views #vcmp[aria-pressed="true"] { color: var(--ink); background: none; text-decoration: underline; text-underline-offset: 4px; }
 .typerow input { flex: 1; min-width: 0; font: inherit; letter-spacing: inherit; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 0; padding: 5px 7px; }
 .typerow input:focus { border-color: var(--ink); outline: none; }
-#import, #textdlg { position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 80%, transparent); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-#import .dlg, #textdlg .dlg { width: min(940px, 100%); max-height: calc(100% - 16px); overflow: hidden; box-sizing: border-box; background: var(--bg); border-top: 1px solid var(--ink);
-  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px 28px; padding: 10px 0 16px; align-items: start; }
-#import .top, #textdlg .top { grid-column: 1 / -1; }
+#import, #textdlg { position: fixed; inset: 0; z-index: 8; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 92%, transparent); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#import .dlg, #textdlg .dlg { width: min(980px, 100%); max-height: calc(100% - 24px); overflow: hidden; box-sizing: border-box; background: var(--bg); border: 1px solid var(--line); border-top-color: var(--ink);
+  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px 36px; padding: 22px 28px 26px; align-items: start; }
+#import .top, #textdlg .top { grid-column: 1 / -1; padding-bottom: 4px; }
 #import .icol, #textdlg .icol { display: grid; gap: 14px; min-width: 0; align-content: start; }
 #import .icol:last-child, #textdlg .icol:last-child { height: 100%; grid-template-rows: auto auto 1fr auto; }
 #import .icol .iact, #textdlg .icol .iact { align-self: end; }
 .pvbox { display: grid; place-items: center; background: var(--wash); }
 @media (max-width: 760px) {
-  #import .dlg { grid-template-columns: minmax(0, 1fr); gap: 12px; overflow-y: auto; }
+  #import .dlg, #textdlg .dlg { grid-template-columns: minmax(0, 1fr); gap: 12px; overflow-y: auto; padding: 16px 16px 18px; }
   #import .icol:last-child, #textdlg .icol:last-child { height: auto; grid-template-rows: none; }
   #iprev { max-height: 24vh; }
 }
 #import .top, #textdlg .top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 #import .top .v, #textdlg .top .v { color: var(--mute); text-align: right; }
-#iprev { display: block; max-width: 100%; max-height: max(80px, min(380px, 100vh - 330px)); width: auto; height: auto; }
+#iprev { display: block; max-width: 100%; max-height: max(80px, min(380px, 100vh - 380px)); width: auto; height: auto; }
 .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
 .opts button { display: grid; gap: 2px; text-align: left; padding: 7px 8px; color: var(--ink); }
 .opts button[aria-pressed="true"] { color: var(--bg); }
@@ -177,7 +177,7 @@ select { font: inherit; letter-spacing: inherit; text-transform: none; color: va
 .irow b { color: var(--ink); font-weight: 400; }
 .iact { display: flex; justify-content: flex-end; gap: 4px; }
 .iact #igo, .iact #tgo { color: var(--bg); background: var(--ink); border-color: var(--ink); padding: 8px 16px; }
-#tprev { display: block; margin: 0 auto; width: auto; max-width: 100%; height: auto; outline: 1px solid var(--line); outline-offset: -1px; max-height: max(80px, min(360px, 100vh - 300px)); object-fit: contain; background: var(--wash); }
+#tprev { display: block; margin: 0 auto; width: auto; max-width: 100%; height: auto; outline: 1px solid var(--line); outline-offset: -1px; max-height: max(80px, min(360px, 100vh - 360px)); object-fit: contain; background: var(--wash); }
 #textdlg .icol:last-child { grid-template-rows: none; }
 #ttext { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; letter-spacing: .04em; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--line); padding: 4px 0 6px; text-transform: none; }
 #ttext:focus { border-bottom-color: var(--ink); }
@@ -187,7 +187,7 @@ select { font: inherit; letter-spacing: inherit; text-transform: none; color: va
 .opts.six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .opts.six button { justify-items: center; text-align: center; padding: 6px 2px 5px; gap: 4px; font-size: 10px; }
 .opts.six .ar { display: block; border: 1px solid currentColor; }
-.tpair { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
+.tpair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .tcols { display: grid; grid-template-columns: 1fr 1fr auto; gap: 4px; }
 .tcols .sw { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); padding: 5px 8px; cursor: pointer; position: relative; }
 .tcols .sw:hover { border-color: var(--ink); }
@@ -258,7 +258,7 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
 #brush::after { content: ""; position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px; background: #fff; border-radius: 50%; }
 
 #status { position: fixed; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 86%, transparent); z-index: 5; }
-#status .box { display: grid; gap: 10px; width: min(260px, 80%); text-align: center; }
+#status .box { display: grid; gap: 10px; width: min(300px, 80%); text-align: center; box-sizing: border-box; background: var(--bg); border: 1px solid var(--line); padding: 20px 24px 22px; }
 #status .track { height: 1px; background: var(--line); }
 #status .fill { height: 100%; width: 0; background: var(--ink); }
 #status .sub { color: var(--mute); }
@@ -314,6 +314,8 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
         <button type="button" data-p="radial"><canvas width="32" height="18"></canvas>Radial</button>
         <button type="button" data-p="tunnel"><canvas width="32" height="18"></canvas>Tunnel</button>
       </div>
+      <div class="row"><span>Reach</span><span class="v"><b id="reachval"></b></span></div>
+      <div id="treach" class="ttrack" role="slider" tabindex="-1" aria-label="How far the preset reaches: left is the past, right is the future"><i class="bar"></i><i class="zero"></i><i class="tknob"></i></div>
       <canvas id="mapview" width="16" height="9" aria-label="The current time map"></canvas>
       <div class="ramp"><i></i><span id="lpast">−0.00 S</span><span>now</span><span id="lfut">+0.00 S</span></div>
       <div class="btns fill">
@@ -465,7 +467,7 @@ input[type="range"]::-moz-range-thumb { width: 3px; height: 12px; background: va
       <div class="tcols"><label class="sw"><input type="color" id="tfg" aria-label="Text colour"><span><b>Text</b><i id="tfgv"></i></span></label><label class="sw"><input type="color" id="tbg" aria-label="Background colour"><span><b>Background</b><i id="tbgv"></i></span></label><button type="button" id="tswap" title="Swap text and background">⇄</button></div></div>
     <div class="field"><div class="row"><span>Shape</span><span class="v">tall · wide</span></div><div class="opts six" id="tshape"></div></div>
     <div class="tpair">
-      <div class="field"><div class="row"><span>Layout</span></div><div class="opts two" id="tlayout"></div></div>
+      <div class="field"><div class="row"><span>Layout</span></div><div class="opts three" id="tlayout"></div></div>
       <div class="field"><div class="row"><span>Length</span></div><div class="opts three" id="tlen"></div></div>
     </div>
     <div class="iact"><button type="button" id="tcancel">Cancel</button><button type="button" id="tgo" class="go">Make</button></div>
@@ -1671,7 +1673,12 @@ function applyPreset(p) {
   edit('preset', () => { const b = baseL(); b.preset = p; if (p !== 'flat' && Math.abs(b.time) < .01) b.time = -Math.max(.1, Math.abs(S.btime) || .5); touch(b); sel.clear(); sel.add(b.id); });
   markPreset();
 }
-function markPreset() { const p = LY.length ? baseL().preset : ''; document.querySelectorAll('#presets button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === p)); }
+function markPreset() {
+  const p = LY.length ? baseL().preset : '', t = LY.length ? baseL().time : 0;
+  document.querySelectorAll('#presets button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === p));
+  $('reachval').textContent = !clip ? '' : Math.abs(t) < .005 ? 'now' : p === 'flat' ? `whole frame ${signed(t)} ${word(t)}` : `${signed(t)} ${word(t)} at the far end`;
+  if (T.reach) T.reach();
+}
 
 /* ---------------- type ---------------- */
 const selType = () => [...LY].reverse().find(l => l.kind === 'type') || null;
@@ -1781,6 +1788,7 @@ function applyProject(pj, why) {
   if (pj.brush) { S.btime = +pj.brush.time || S.btime; S.bsize = +pj.brush.size || S.bsize; setBlend(pj.brush.blend || S.blend); S.amt = clamp(+pj.brush.amt || S.amt, 0, 1); $('amt').value = Math.round(S.amt * 100); $('amtout').textContent = $('amt').value + '%'; setPress(pj.brush.press || S.press); }
   if (pj.block) { S.op = clamp(+pj.block.op || S.op, .02, 1); S.depth = clamp(+pj.block.depth || S.depth, 1, 12); $('op').value = Math.round(S.op * 100); $('opout').textContent = $('op').value + '%'; $('depth').value = Math.round(S.depth * 10); $('depthout').textContent = S.depth.toFixed(1) + '×'; }
   mapDirty = true; refreshLayers(); syncBrushUI(); syncTypeUI(); markPreset();
+  { const top = LY[LY.length - 1]; if (top) { S.amt = clamp(top.amt == null ? S.amt : top.amt, 0, 1); $('amt').value = Math.round(S.amt * 100); $('amtout').textContent = $('amt').value + '%'; setBlend(top.blend || 'none'); } }   // the Blend buttons show what the map is using
   Promise.all(FONTS.map((f, i) => fontReady(i))).then(() => { for (const l of LY) if (l.kind === 'type') touch(l); });
   if (why) flash(why);
 }
@@ -1931,7 +1939,7 @@ function showView() {
 }
 function setBlend(m, apply) {                           // one blend for every stroke, word and image
   S.blend = m;
-  if (apply && clip && LY.length > 1) edit('blend', () => LY.slice(1).forEach(l => { l.blend = m; l.amt = S.amt; touch(l); }));
+  if (apply && clip && LY.length) edit('blend', () => LY.forEach(l => { l.blend = m; l.amt = S.amt; touch(l); }));
   for (const k of ['none', 'feather', 'ripple']) $('m' + k).setAttribute('aria-pressed', m === k);
   $('amtrow').hidden = $('amt').hidden = m === 'none'; $('amtlabel').textContent = m === 'ripple' ? 'Ripple' : 'Feather';
 }
@@ -2152,12 +2160,13 @@ setRange('depth', v => { S.depth = v / 10; dirty = true; }, v => (v / 10).toFixe
 for (const k of ['none', 'feather', 'ripple']) {
   $('m' + k).addEventListener('click', () => setBlend(k, true));
 }
-$('amt').addEventListener('input', () => { if (clip && LY.length > 1) edit('amt', () => LY.slice(1).forEach(l => { l.amt = S.amt; touch(l); })); });
+$('amt').addEventListener('input', () => { if (clip && LY.length) edit('amt', () => LY.forEach(l => { l.amt = S.amt; touch(l); })); });
 for (const k of ['off', 'time', 'size']) $('p' + k).addEventListener('click', () => setPress(k));
 $('btime').addEventListener('change', e => { const v = parseFloat(e.target.value); if (isFinite(v)) { S.btime = v; setMode('brush'); } e.target.blur(); syncBrushUI(); });
 $('bsize').addEventListener('input', e => { S.bsize = clamp(+e.target.value / 100, .01, .6); syncBrushUI(); });
 $('bbrush').addEventListener('click', () => setMode('brush')); $('berase').addEventListener('click', () => setMode('erase'));
 T.brush = timeTrack($('ttrack'), () => S.btime, v => { S.btime = v; if (S.mode !== 'brush') setMode('brush'); syncBrushUI(); });
+T.reach = timeTrack($('treach'), () => LY.length ? baseL().time : 0, v => { if (!clip) return; edit('reach', () => { const b = baseL(); b.time = v; touch(b); }); markPreset(); });
 T.type = timeTrack($('ttype'), () => S.ttime, v => { S.ttime = v; const t = selType(); if (t) editType(l => { l.time = v; }); else syncTypeUI(); });
 T.dark = timeTrack($('tdark'), () => levL ? levL.lev.d : 0, v => { if (levL) { levL.lev.d = v; levelsChanged(); } });
 T.light = timeTrack($('tlight'), () => levL ? levL.lev.l : 0, v => { if (levL) { levL.lev.l = v; levelsChanged(); } });
@@ -2183,7 +2192,7 @@ $('load2').addEventListener('click', () => $('file').click());
 
 /* ---------------- text source: a short looping text animation, made here and used like a video ---------------- */
 const TMOTIONS = [['slide', 'Slide'], ['rise', 'Rise'], ['scale', 'Scale'], ['spin', 'Spin']];
-const TDEF = { text: 'TIME', motion: 'slide', font: 0, size: .34, fill: false, inv: false, len: 4, shape: '16:9' };
+const TDEF = { text: 'TIME', motion: 'slide', font: 0, size: .34, layout: 'one', len: 4, shape: '16:9' };
 const TSHAPES = ['9:16', '3:4', '4:5', '16:9', '4:3', '5:4'];
 function shapeSize(sh, long = 1280) {                   // long side fixed; even sizes for the encoder
   const [a, b] = (sh || '16:9').split(':').map(Number), r = a / b;
@@ -2201,17 +2210,25 @@ function drawTextFrame(x, g, W, H, p) {                 // p: 0–1 through the 
     if (g.motion === 'scale') x.scale(sc, sc); else if (g.motion === 'spin') x.rotate(an);
     x.fillText(txt, 0, 0); x.restore();
   };
-  if (g.scramble) {                                    // a field of random letters: shifted copies of it look the same when still
-    const CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', cwS = fs * .78, cols = Math.ceil(W / cwS) + 2, P = Math.max(Math.round(g.len * 30), cols + 3),   // one letter per frame, so any whole-frame offset lands on whole letters
+  const lay = g.layout || (g.scramble ? 'random' : g.fill ? 'fill' : 'one');
+  if (lay === 'random') {                                    // a field of random letters: shifted copies of it look the same when still
+    const CH = [...new Set([...txt.replace(/\s/g, '')])].join('') || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', cwS = fs * .78, cols = Math.ceil(W / cwS) + 2, P = Math.max(Math.round(g.len * 30), cols + 3),   // one letter per frame, so any whole-frame offset lands on whole letters
       rowsS = Math.ceil(H / (fs * 1.05)) + 1;
     const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) % CH.length; };
+    const rh2 = fs * 1.05, PR = Math.max(Math.round(g.len * 30), rowsS + 3);
+    const cell = (ch, cx, cy) => { if (g.motion === 'scale' || g.motion === 'spin') { x.save(); x.translate(cx, cy); if (g.motion === 'scale') x.scale(sc, sc); else x.rotate(an); x.fillText(ch, 0, 0); x.restore(); } else x.fillText(ch, cx, cy); };
+    if (g.motion === 'rise') {                         // the grid climbs one row per frame
+      const o = p * PR, base = Math.floor(o), fr = o - base;
+      for (let r = -1; r < rowsS; r++) for (let k = 0; k < cols; k++) cell(CH[hash(((r + base) % PR + PR) % PR, k) % CH.length], k * cwS + cwS / 2, (r - fr) * rh2 + fs * .55 + rh2);
+      return;
+    }
     for (let r = 0; r < rowsS; r++) {
-      const o = (r % 2 ? -1 : 1) * p * P, base = Math.floor(o), fr = o - base, y = r * fs * 1.05 + fs * .55;
-      for (let k = -1; k < cols; k++) x.fillText(CH[hash(r, ((k - base) % P + P) % P)], (k + fr) * cwS + cwS / 2, y);
+      const o = g.motion === 'slide' ? (r % 2 ? -1 : 1) * p * P : 0, base = Math.floor(o), fr = o - base, y = r * rh2 + fs * .55;
+      for (let k = -1; k < cols; k++) cell(CH[hash(r, ((k - base) % P + P) % P) % CH.length], (k + fr) * cwS + cwS / 2, y);
     }
     return;
   }
-  if (!g.fill) {
+  if (lay === 'one') {
     if (g.motion === 'slide') one(W + tw / 2 - p * (W + tw), H / 2);
     else if (g.motion === 'rise') one(W / 2, H + rh / 2 - p * (H + rh));
     else one(W / 2, H / 2);
@@ -2229,8 +2246,8 @@ function textDialog(start) {
     const g = { ...TDEF, ...(start || {}) }, pv = $('tprev'), px = pv.getContext('2d');
     const opts = (id, list, key, label, after) => {
       const el = $(id); el.innerHTML = '';
-      for (const [v, name, style, iw, ih] of list) {
-        const b = document.createElement('button'); b.type = 'button'; b.textContent = name; if (style) b.style.cssText = style;
+      for (const [v, name, style, iw, ih, tip] of list) {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = name; if (style) b.style.cssText = style; if (tip) b.title = tip;
         if (iw) { const ic = document.createElement('span'); ic.className = 'ar'; ic.style.width = iw + 'px'; ic.style.height = ih + 'px'; b.prepend(ic); }
         b.setAttribute('aria-pressed', g[key] === v); b.onclick = () => { g[key] = v; el.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); if (after) after(); };
         el.append(b);
@@ -2238,7 +2255,8 @@ function textDialog(start) {
     };
     opts('tmotion', TMOTIONS, 'motion');
     opts('tfonts', FONTS.map(([f, w], i) => [i, 'Aa', `font-family: "${f}"; font-weight: ${w};`]), 'font');
-    opts('tlayout', [[false, 'One word'], [true, 'Fill the frame']], 'fill');
+    g.layout = g.layout || (g.scramble ? 'random' : g.fill ? 'fill' : 'one'); delete g.fill; delete g.scramble;
+    opts('tlayout', [['one', 'Word', null, 0, 0, 'One word'], ['fill', 'Fill', null, 0, 0, 'Rows of the word filling the frame'], ['random', 'Random', null, 0, 0, 'Random letters taken from your text']], 'layout');
     [g.fg, g.bg] = tColors(g);
     const showCol = () => { $('tfg').value = g.fg; $('tbg').value = g.bg; $('tfgv').textContent = g.fg; $('tbgv').textContent = g.bg; };
     $('tfg').oninput = () => { g.fg = $('tfg').value; showCol(); };
@@ -2319,6 +2337,7 @@ async function loadText(g) {
 function syncSourceUI() { if (!pending || !pending.why) markExample(-1); $('tmake').textContent = clip && clip.kind === 'text' ? 'Edit text' : 'Make text'; }
 
 /* ---------------- examples: a source and a map, set up for a first look ---------------- */
+const HID_AMT = .03;
 const EXAMPLES = [
   { name: 'Lean', desc: 'A word slides across; the top of the frame runs later than the bottom, so it leans.',
     gen: { text: 'LEAN', motion: 'slide', font: 0, size: .4, fill: false, inv: false, len: 6 },
@@ -2329,9 +2348,9 @@ const EXAMPLES = [
   { name: 'Stretch', desc: 'A slit-scan: each column of the frame is a slightly different moment, timed against the word’s own speed, so its letters stretch out as it passes.',
     gen: { text: 'STRETCH', motion: 'slide', font: 1, size: .5, fill: false, inv: true, len: 6 },
     layers: [{ kind: 'base', preset: 'tilt', time: .85, blend: 'none' }], brush: -1 },
-  { name: 'Hidden', desc: 'A field of random moving letters, with NOW set half a second behind. Paused, the word is invisible; it appears only while it plays.',
-    gen: { text: 'NOW', motion: 'slide', font: 3, size: .028, fill: true, inv: false, len: 4, scramble: true },
-    layers: [{ kind: 'base', preset: 'flat', time: 0, blend: 'none' }, { kind: 'type', text: 'NOW', font: 0, size: .72, x: .5, y: .5, time: -.5, blend: 'none' }], brush: -.5 },
+  { name: 'Hidden', desc: 'Random letters from TIMESLIP, with the word NOW set a beat behind. Paused, it is only a faint seam; playing, it reads clearly. Change the letters with Edit text, or the word in Text and image.',
+    gen: { text: 'TIMESLIP', motion: 'slide', font: 3, size: .04, layout: 'random', inv: false, len: 4 },
+    layers: [{ kind: 'base', preset: 'flat', time: 0, blend: 'feather', amt: HID_AMT }, { kind: 'type', text: 'NOW', font: 0, size: .72, x: .5, y: .5, time: -.4, blend: 'feather', amt: HID_AMT }], brush: -.4 },
   { name: 'Slices', adv: true, desc: 'A spinning word cut into five bands, alternately painted into the past and the future, so each slice sits at its own angle.',
     gen: { text: 'SLICE', motion: 'spin', font: 0, size: .44, fill: false, inv: true, len: 4 },
     layers: [{ kind: 'base', preset: 'flat', time: 0, blend: 'none' },
